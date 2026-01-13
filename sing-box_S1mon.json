@@ -71,9 +71,9 @@
     {"tag":"🍎 Apple","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
     {"tag":"📺 Bilibili","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan"],"interrupt_exist_connections": true},
     {"tag":"🖥️ Mircosoft","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
-    {"tag":"tg-tg","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
-    {"tag":"tg-us","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
-    {"tag":"tg-eu","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
+    {"tag":"tg-sg","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"default":"🇸🇬 Singapore","interrupt_exist_connections": true},
+    {"tag":"tg-us","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"default":"🇺🇸 United States","interrupt_exist_connections": true},
+    {"tag":"tg-eu","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"default":"🇺🇳 Other regions","interrupt_exist_connections": true},
     {"tag":"🇭🇰 Hong Kong","type":"selector","use_all_providers":true,"include":"(?i)香港|hk|hongkong","interrupt_exist_connections": true},
     {"tag":"🇹🇼 Taiwan","type":"selector","use_all_providers":true,"include":"(?i)台湾|tw|taiwan|taipei","interrupt_exist_connections": true},
     {"tag":"🇸🇬 Singapore","type":"selector","use_all_providers":true,"include":"(?i)新加坡|sg|singapore|狮城","interrupt_exist_connections": true},
@@ -94,7 +94,7 @@
       {"clash_mode":"Global","outbound":"GLOBAL"},
       {"clash_mode":"Direct","outbound":"direct"},
       {"domain_suffix":["steamserver.net"],"outbound":"direct"},
-      {"outbound":"tg-tg","ip_cidr":["91.108.16.0/21","91.108.56.0/23","149.154.168.0/22","2001:b28:f23c::/48","2001:b28:f23f::/48"]},
+      {"outbound":"tg-sg","ip_cidr":["91.108.16.0/21","91.108.56.0/23","149.154.168.0/22","2001:b28:f23c::/48","2001:b28:f23f::/48"]},
       {"outbound":"tg-us","ip_cidr":["91.108.12.0/22","149.154.172.0/22","2001:b28:f23d::/48"]},
       {"outbound":"tg-eu","ip_cidr":["5.28.192.0/18","91.105.192.0/23","91.108.4.0/22","91.108.8.0/22","91.108.56.0/22","95.161.64.0/20","109.239.140.0/24","149.154.160.0/21","185.76.151.0/24","2001:67c:4e8::/48","2a0a:f280:203::/48"]},
       {"network":"icmp","outbound":"direct"},
@@ -133,5 +133,6 @@
     ]
   }
 }
+
 
 
