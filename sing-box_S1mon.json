@@ -132,6 +132,6 @@
       {"tag":"cn_ip","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/cn.srs","download_detour":"direct"}
     ]
   }
-
 }
+
 
