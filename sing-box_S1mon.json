@@ -19,7 +19,7 @@
       "user_agent": "sing-box/v1.12.0",
       "download_detour": "direct",
       "update_interval": "24h0m0s",
-      "health_check": {"enabled":true,"url":"https://www.gstatic.com/generate_204","interval":"10m0s","timeout":"3s"}
+      "health_check": {"enabled":false,"url":"https://www.gstatic.com/generate_204","interval":"10m0s","timeout":"3s"}
     },
     {
       "tag": "2.",
@@ -28,7 +28,7 @@
       "user_agent": "sing-box/v1.12.0",
       "download_detour": "direct",
       "update_interval": "24h0m0s",
-      "health_check": {"enabled":true,"url":"https://www.gstatic.com/generate_204","interval":"10m0s","timeout":"3s"}
+      "health_check": {"enabled":false,"url":"https://www.gstatic.com/generate_204","interval":"10m0s","timeout":"3s"}
     }
   ],
   "dns": {
@@ -134,3 +134,4 @@
   }
 
 }
+
