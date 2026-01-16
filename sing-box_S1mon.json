@@ -35,7 +35,7 @@
     "servers": [
       {"tag":"proxy_server_dns","type":"https","server":"doh.pub","domain_resolver":"hosts"},
       {"tag":"direct_dns","type":"https","server":"dns.alidns.com","domain_resolver":"hosts"},
-      {"tag":"proxy_dns","type":"https","server":"dns.google","domain_resolver":"hosts","detour":"🐝 CATCH_ALL"},
+      {"tag":"proxy_dns","type":"https","server":"cloudflare-dns.com","domain_resolver":"hosts","detour":"🐝 CATCH_ALL"},
       {"tag":"local","type":"local"},
       {"tag":"fake-ip-dns-server","type":"fakeip","inet4_range":"198.18.0.0/15","inet6_range":"fc00::/64"},
       {"tag":"hosts","type":"hosts","predefined":{"dns.alidns.com":["223.5.5.5","223.6.6.6"],"doh.pub":["1.12.12.21","120.53.53.53"],
@@ -135,6 +135,7 @@
     ]
   }
 }
+
 
 
 
