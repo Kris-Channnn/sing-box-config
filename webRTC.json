@@ -31,7 +31,9 @@
         "relay.metered.ca",
         "global.stun.twilio.com",
         "stun.nextcloud.com"
-      ],
+      ]
+    },
+    {
       "port": [
         19302,
         3478,
