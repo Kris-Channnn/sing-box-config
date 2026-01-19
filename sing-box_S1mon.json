@@ -66,7 +66,7 @@
      "platform":{"http_proxy":{"enabled":true,"server":"127.0.0.1","server_port":7890}}}
   ],
   "outbounds": [
-    {"tag":"🐝 CATCH_ALL","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
+    {"tag":"🐝 CATCH_ALL","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions","direct"],"interrupt_exist_connections": true},
     {"tag":"🤖 AI","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
     {"tag":"🍎 Apple","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
     {"tag":"📺 Bilibili","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan"],"interrupt_exist_connections": true},
@@ -139,6 +139,7 @@
     ]
   }
 }
+
 
 
 
