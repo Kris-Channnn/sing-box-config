@@ -1,0 +1,7 @@
+D:\APPLY\sing-box_reF1nd\  (主目录)
+├── singbox-manager.ps1    # PowerShell 管理脚本
+├── run-as-admin.bat       # 管理员启动脚本
+├── sing-box.exe           # sing-box 主程序
+├── config.json            # 配置文件 (自动生成)
+├── sing-box.log           # 日志文件 (运行时生成)
+└── service.log            # 服务日志 (服务模式生成)
