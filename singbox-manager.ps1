@@ -204,7 +204,7 @@ function Test-Connection {
     # 测试代理（假设使用 7890 端口）
     try {
         $webClient = New-Object System.Net.WebClient
-        $webClient.Proxy = New-Object System.Net.WebProxy("172.19.0.1:7890")
+        $webClient.Proxy = New-Object System.Net.WebProxy("127.0.0.1:7890")
         $result = $webClient.DownloadString("http://ipinfo.io/ip") -replace "`n", ""
         Write-Host "代理连接: ✅ 正常 (IP: $result)" -ForegroundColor Green
     }
@@ -561,4 +561,5 @@ try {
 catch {
     Write-Host "错误: $_" -ForegroundColor Red
     Pause
+
 }
