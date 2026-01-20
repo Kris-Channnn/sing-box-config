@@ -105,14 +105,14 @@
       {"protocol":"quic","rule_set":"youtube","action":"reject"},
       {"ip_is_private":true,"outbound":"direct"},
       {"rule_set":"AWAvenue-Ads","action":"reject","method":"drop"},
+      {"rule_set":"private","outbound":"direct"},
       {"rule_set":"apple", "outbound":"🍎 Apple"},
       {"rule_set":"bilibili","outbound":"📺 Bilibili"},
       {"rule_set":"bahamut","outbound":"🇹🇼 Taiwan"},
-      {"rule_set":"private","outbound":"direct"},
       {"rule_set":"ai","outbound":"🤖 AI"},
-      {"rule_set":["telegram","github","twitter","youtube","google"],"outbound":"🐝 CATCH_ALL"},
-      {"rule_set":"geosite-microsoft", "outbound":"🖥️ Mircosoft"},
-      {"rule_set":"gfw", "outbound":"🐝 CATCH_ALL"},
+      {"rule_set":"github","outbound":"🐝 CATCH_ALL"},
+      {"rule_set":"geosite-microsoft","outbound":"🖥️ Mircosoft"},
+      {"rule_set":["telegram","twitter","youtube","google","gfw"],"outbound":"🐝 CATCH_ALL"},
       {"rule_set":"cn","outbound":"direct"},
       {"action":"resolve","match_only":true},
       {"rule_set":"cn_ip","outbound":"direct"}
@@ -139,6 +139,7 @@
     ]
   }
 }
+
 
 
 
