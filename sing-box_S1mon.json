@@ -121,7 +121,7 @@
       {"rule_set":"cn_ip","outbound":"direct"}
     ],
     "rule_set": [
-      {"tag":"webRTC","type":"remote","url":"https://raw.githubusercontent.com/Kris-Channnn/sing-box-proxy/refs/heads/main/webRTC.json","download_detour":"🐝 CATCH_ALL"},
+      {"tag":"webRTC","type":"remote","url":"https://raw.githubusercontent.com/Kris-Channnn/sing-box-config/refs/heads/main/webRTC.json","download_detour":"🐝 CATCH_ALL"},
       {"tag":"AWAvenue-Ads","type":"remote","url":"https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json","download_detour":"🐝 CATCH_ALL"},
       {"tag":"private","type":"remote","url":"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs","download_detour":"🐝 CATCH_ALL"},
       {"tag":"ai","type":"remote","format":"binary","url":"https://gh-CATCH_ALL.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ai-!cn.srs","download_detour":"direct"},
@@ -142,6 +142,7 @@
     ]
   }
 }
+
 
 
 
