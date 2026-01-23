@@ -18,7 +18,7 @@ if '%errorlevel%' NEQ '0' (
 :gotAdmin
     if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
     :: 提权后，系统目录会变，必须切换回脚本所在目录
-    cd /d "D:\APPLY\sing-box_reF1nd"
+    cd /d "sing-box所在地址"
 
 :: ---------------------------------------------------
 :: 主逻辑区域
@@ -27,5 +27,6 @@ if '%errorlevel%' NEQ '0' (
 echo 已获取管理员权限
 :: 启动 PowerShell 脚本
 powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
+
 
 pause
