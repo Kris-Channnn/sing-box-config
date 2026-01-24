@@ -18,7 +18,7 @@ if '%errorlevel%' NEQ '0' (
 :gotAdmin
     if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
     :: 提权后，系统目录会变，必须切换回脚本所在目录
-    cd /d "sing-box所在地址"
+    cd /d "sing-box.exe及config.json所在地址"
 
 :: ---------------------------------------------------
 :: 主逻辑区域
@@ -30,3 +30,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
 
 
 pause
+
