@@ -1,10 +1,9 @@
 <#
 .SYNOPSIS
-    Sing-box 管理脚本 (定制版)
+    Sing-box 管理脚本 (严格日志限制 + 配置检查修复版)
 .DESCRIPTION
-    1. 启动后不自动跳转监控。
-    2. 实时监控移除了端口显示。
-    3. 保留日志轮转、功能日志分离等高级功能。
+    1. 日志轮转严格执行：超过 1024KB 自动切割，最多保留 3 份备份。
+    2. 修复并完善了配置检查功能 (菜单7)，提供明确的 Pass/Fail 反馈。
 #>
 
 # --- 配置区域 ---
@@ -13,8 +12,8 @@ $ExePath = ".\sing-box.exe"
 $ConfigPath = "config.json"
 $LogFile = ".\sing-box.log"            # 标准运行日志
 $ErrorLogFile = ".\sing-box_error.log" # 功能日志
-$MaxLogSizeBytes = 1024 * 1024         # 日志上限 1MB
-$MaxBackups = 3                        # 保留备份数量
+$MaxLogSizeBytes = 1024 * 1024         # 日志上限 1024KB (1MB)
+$MaxBackups = 3                        # 保留备份数量 (log.1, log.2, log.3)
 # ----------------
 
 $ScriptDir = $PSScriptRoot
@@ -60,31 +59,58 @@ function Check-Admin {
     return $true
 }
 
+# --- 核心修复：严格日志轮转逻辑 ---
 function Check-LogSize {
     param ([string]$FilePath)
-    if (Test-Path $FilePath) {
+    
+    if (-not (Test-Path $FilePath)) { return }
+
+    try {
         $fileItem = Get-Item $FilePath
+        # 严格检查：如果文件大小超过限制 (1024KB)
         if ($fileItem.Length -gt $MaxLogSizeBytes) {
-            if (Test-Path "$FilePath.$MaxBackups") { Remove-Item "$FilePath.$MaxBackups" -Force }
+            Write-Host "[$($fileItem.Name)] 大小为 $([math]::Round($fileItem.Length/1KB, 2))KB (超过 1024KB)，正在轮转..." -ForegroundColor Yellow
+            
+            # 1. 删除超出保留数量的最旧备份 (例如 log.3)
+            # 循环检查并删除所有超出范围的备份，防止有遗留文件
+            $limit = $MaxBackups
+            while (Test-Path "$FilePath.$limit") {
+                Remove-Item "$FilePath.$limit" -Force -ErrorAction SilentlyContinue
+                $limit++ 
+            }
+            # 这里的逻辑是：先把 .3 删掉，腾出位置
+            if (Test-Path "$FilePath.$MaxBackups") { 
+                Remove-Item "$FilePath.$MaxBackups" -Force -ErrorAction SilentlyContinue
+            }
+
+            # 2. 依次后移旧备份 (log.2 -> log.3, log.1 -> log.2)
             for ($i = $MaxBackups - 1; $i -ge 1; $i--) {
                 $next = $i + 1
-                if (Test-Path "$FilePath.$i") { Move-Item "$FilePath.$i" "$FilePath.$next" -Force }
+                if (Test-Path "$FilePath.$i") {
+                    Move-Item "$FilePath.$i" "$FilePath.$next" -Force -ErrorAction SilentlyContinue
+                }
             }
-            Move-Item $FilePath "$FilePath.1" -Force
+
+            # 3. 将当前日志移动为最新的备份 (log -> log.1)
+            Move-Item $FilePath "$FilePath.1" -Force -ErrorAction SilentlyContinue
+            
+            Write-Host "✅ 日志已归档，当前重新计数。" -ForegroundColor Gray
         }
+    } catch {
+        Write-Warning "日志轮转失败，文件可能被占用 (Sing-box 是否正在运行?)"
     }
 }
 
 function Show-Header {
     Clear-Host
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "    Sing-box 管理脚本 (Lite Monitor)" -ForegroundColor Yellow
+    Write-Host "    Sing-box 管理脚本 (Strict & Fixed)" -ForegroundColor Yellow
     Write-Host "==========================================" -ForegroundColor Cyan
 }
 
 function Show-Menu {
     Show-Header
-    Write-Host " 1. 启动 (Start) [后台模式]" -ForegroundColor Green
+    Write-Host " 1. 启动 (Start)" -ForegroundColor Green
     Write-Host " 2. 停止 (Stop)" -ForegroundColor Red
     Write-Host " 3. 重启 (Restart)" -ForegroundColor Yellow
     Write-Host " 4. 实时监控状态 (Monitor)" -ForegroundColor Cyan
@@ -92,9 +118,10 @@ function Show-Menu {
     Write-Host " 5. 查看标准日志 (Info Log)" -ForegroundColor Green
     Write-Host " 6. 查看功能日志 (Complete Log)" -ForegroundColor Red
     Write-Host "------------------------------------------" -ForegroundColor DarkGray
-    Write-Host " 7. 检查配置文件" -ForegroundColor Gray
-    Write-Host " 8. 设置开机自启" -ForegroundColor Magenta
-    Write-Host " 9. 取消开机自启" -ForegroundColor DarkMagenta
+    # 这里是本次修复的重点
+    Write-Host " 7. 检查配置文件 (Check Config)" -ForegroundColor Green 
+    Write-Host " 8. 设置开机自启 (Auto Start)" -ForegroundColor Magenta
+    Write-Host " 9. 取消开机自启 (Disable Startup)" -ForegroundColor DarkMagenta
     Write-Host "------------------------------------------" -ForegroundColor DarkGray
     Write-Host " 0. 停止服务并退出 (Kill & Exit)" -ForegroundColor Red
     Write-Host " Q. 仅退出脚本 (Keep Running)" -ForegroundColor Gray
@@ -103,11 +130,13 @@ function Show-Menu {
 
 function Start-App {
     if (Get-Process -Name $ExeName -ErrorAction SilentlyContinue) {
-        Write-Warning "Sing-box 已经在运行中。"
+        Write-Warning "Sing-box 已经在运行中 (PID: $((Get-Process -Name $ExeName).Id))。"
+        Write-Warning "提示：若需触发日志轮转，请先执行 '3. 重启'。"
         return
     }
     if (-not (Test-Path $ExePath)) { Write-Error "未找到 $ExePath"; return }
 
+    # 启动前执行日志检查
     Check-LogSize $LogFile
     Check-LogSize $ErrorLogFile
 
@@ -119,11 +148,9 @@ function Start-App {
         $proc = Get-Process -Name $ExeName -ErrorAction SilentlyContinue
         if ($proc) {
             Write-Host " [成功]" -ForegroundColor Green
-            # --- 修改：只显示静态信息，不再跳转 Get-Status ---
             Write-Host "    -> 进程 ID (PID) : $($proc.Id)" -ForegroundColor Magenta
             Write-Host "    -> 启动时间      : $($proc.StartTime)" -ForegroundColor DarkGray
             Write-Host "    -> 内存占用      : $([math]::Round($proc.WorkingSet64 / 1MB, 2)) MB" -ForegroundColor DarkGray
-            # ------------------------------------------------
         } else {
             Write-Host " [失败]" -ForegroundColor Red
             Write-Host "启动失败，正在打开功能日志..." -ForegroundColor Yellow
@@ -144,7 +171,6 @@ function Stop-App {
 
 function Restart-App { Stop-App; Start-Sleep -Seconds 1; Start-App }
 
-# --- 核心修改：移除端口显示的动态监控 ---
 function Get-Status {
     try { [Console]::CursorVisible = $false } catch {}
 
@@ -171,7 +197,7 @@ function Get-Status {
                 Write-Host "    -> 运行时间      : $uptimeStr" -ForegroundColor Yellow
                 Write-Host "    -> 句柄/线程     : $($proc.HandleCount) / $($proc.Threads.Count)" -ForegroundColor DarkGray
                 
-                # --- 修改：已移除端口监听状态代码块 ---
+                # 端口监听已移除
                 
             } else {
                 Write-Host "❌ Sing-box 未运行" -ForegroundColor Red
@@ -201,16 +227,43 @@ function View-FuncLog {
     else { Write-Warning "功能日志文件不存在" }
 }
 
+# --- 核心修复：完善的配置检查函数 ---
 function Test-Config {
-    Write-Host "正在检查配置文件..." -ForegroundColor Cyan
+    Clear-Host
+    Write-Host "==========================================" -ForegroundColor Cyan
+    Write-Host "    正在检查配置文件语法..." -ForegroundColor Yellow
+    Write-Host "    目标文件: $ConfigPath" -ForegroundColor Gray
+    Write-Host "==========================================" -ForegroundColor Cyan
+    
+    if (-not (Test-Path $ConfigPath)) {
+        Write-Host "❌ 错误: 找不到文件 $ConfigPath" -ForegroundColor Red
+        Pause
+        return
+    }
+
+    # 执行检查并捕获结果
+    # 使用 Wait 和 PassThru 获取退出代码
     try {
-        $result = Start-Process -FilePath $ExePath -ArgumentList "check -c $ConfigPath" -NoNewWindow -Wait -PassThru
-        if ($result.ExitCode -eq 0) {
-            Write-Host "✅ 配置文件格式正确" -ForegroundColor Green
+        $process = Start-Process -FilePath $ExePath `
+                                 -ArgumentList "check -c $ConfigPath" `
+                                 -NoNewWindow `
+                                 -Wait `
+                                 -PassThru
+        
+        Write-Host "" 
+        if ($process.ExitCode -eq 0) {
+            Write-Host "✅ 校验通过 (SUCCESS)" -ForegroundColor Green
+            Write-Host "配置文件的 JSON 格式和参数结构正确。" -ForegroundColor Gray
         } else {
-            Write-Host "❌ 配置文件存在错误" -ForegroundColor Red
+            Write-Host "❌ 校验失败 (FAILED)" -ForegroundColor Red
+            Write-Host "请根据上方提示的错误信息 (FATAL/ERROR) 修正 config.json。" -ForegroundColor Yellow
         }
-    } catch { Write-Error "无法执行检查命令" }
+    } catch {
+        Write-Error "无法执行检查命令: $_"
+    }
+
+    Write-Host "`n按任意键返回菜单..." -ForegroundColor Gray
+    [void][System.Console]::ReadKey($true)
 }
 
 function Install-Task {
@@ -239,7 +292,7 @@ while ($true) {
         "4" { Get-Status }
         "5" { View-Log }
         "6" { View-FuncLog }
-        "7" { Test-Config; Pause }
+        "7" { Test-Config } # 这里不需要Pause，因为函数内部自己加了
         "8" { Install-Task; Pause }
         "9" { Uninstall-Task; Pause }
         "0" { Stop-App; Write-Host "退出中..."; Start-Sleep -Seconds 1; exit }
@@ -248,4 +301,3 @@ while ($true) {
         Default { Write-Warning "无效选项"; Start-Sleep -Seconds 1 }
     }
 }
-
