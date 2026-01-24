@@ -202,8 +202,15 @@ function View-FuncLog {
 }
 
 function Test-Config {
-    Write-Host "检查配置..."
-    Start-Process -FilePath $ExePath -ArgumentList "check -c $ConfigPath" -NoNewWindow -Wait
+    Write-Host "正在检查配置文件..." -ForegroundColor Cyan
+    try {
+        $result = Start-Process -FilePath $ExePath -ArgumentList "check -c $ConfigPath" -NoNewWindow -Wait -PassThru
+        if ($result.ExitCode -eq 0) {
+            Write-Host "✅ 配置文件格式正确" -ForegroundColor Green
+        } else {
+            Write-Host "❌ 配置文件存在错误" -ForegroundColor Red
+        }
+    } catch { Write-Error "无法执行检查命令" }
 }
 
 function Install-Task {
@@ -241,3 +248,4 @@ while ($true) {
         Default { Write-Warning "无效选项"; Start-Sleep -Seconds 1 }
     }
 }
+
