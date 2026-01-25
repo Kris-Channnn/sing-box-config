@@ -97,7 +97,7 @@
       {"ip_is_private":true,"outbound":"direct"},
       {"clash_mode":"Global","outbound":"GLOBAL"},
       {"clash_mode":"Direct","outbound":"direct"},
-      {"rule_set":"webRTC","action":"reject"},
+      {"rule_set":"webRTC","action":"reject","method":"drop"},
       {"rule_set":"AWAvenue-Ads","action":"reject"},
       {"domain":["abyss.cyapi.cn","ad.cyapi.cn","gather.colorfulclouds.net"],"action":"reject"},
       {"domain_suffix":["steamserver.net"],"outbound":"direct"},
@@ -142,6 +142,7 @@
     ]
   }
 }
+
 
 
 
