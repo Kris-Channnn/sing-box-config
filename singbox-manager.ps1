@@ -114,7 +114,7 @@ function Show-Menu {
     Write-Host "-----------------------------------" -ForegroundColor DarkGray
     Write-Host "`n  [ 日志管理 ]" -ForegroundColor Cyan
     Write-Line "5. 查看标准日志 (Info Log)" "Gray"
-    Write-Line "6. 查看功能日志 (Complete Log)" "Gray"
+    Write-Line "6. 查看功能日志 (Complete Log)" "Yellow"
     Write-Host "-----------------------------------" -ForegroundColor DarkGray
     Write-Host "`n  [ 系统设置 ]" -ForegroundColor Cyan
     Write-Line "7. 检查配置文件 (Check Config)" "White"
@@ -282,3 +282,4 @@ while ($true) {
         Default { Write-Line "无效选项" "Red"; Start-Sleep -Seconds 1 }
     }
 }
+
