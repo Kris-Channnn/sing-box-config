@@ -1,13 +1,16 @@
 <#
 .SYNOPSIS
-    Sing-box 管理脚本 v6.1 (UI Ultimate Fix)
+    Sing-box 管理脚本 v6.3 (Start-App Fix)
 .DESCRIPTION
-    v6.1 修复说明：
+    v6.3 修复说明：
     1. 【核心修复】完全移除 Test-NetConnection，改用 .NET Socket 进行网络测试。
        - 彻底解决了"天蓝色/青色"进度条闪烁问题。
        - 彻底解决了背景色被染成青色无法消除的 Bug。
        - 测试速度提升 300%。
     2. 增加了 Reset-Console 函数，强制重置控制台背景色为黑色。
+    3. Start-App 函数，改用 cmd.exe 配合 >> 重定向符来启动 sing-box。
+       - 这样日志写操作由操作系统底层接管，完全独立于你的脚本窗口
+       - 当关闭管理脚本窗口时，cmd.exe 会退出，但 sing-box.exe 依然保持运行，并且依然持有日志文件的写入句柄。
 #>
 
 param(
@@ -55,7 +58,7 @@ $TitleArt = @"
   \___ \| | '_ \ / _` | '_ \ / _ \ \/ /  
   ____) | | | | | (_| | |_) | (_) >  <   
  |_____/|_|_| |_|\__, |_.__/ \___/_/\_\  
-                  __/ |   Manager v6.1   
+                  __/ |   Manager v6.3   
                  |___/                   
 "@
 
@@ -342,7 +345,8 @@ function Watch-LogFile {
     Clear-Host
     Write-Host "========================================================" -ForegroundColor Cyan
     Write-Host "  📄 $Title" -ForegroundColor Yellow
-    Write-Host "  ⌨️  [Q]退出 [S]搜索 [C]清屏 [F]过滤错误" -ForegroundColor Green
+    # [修改] 增加了 [R]重载 选项说明
+    Write-Host "  ⌨️  [Q]退出 [S]搜索 [C]清屏 [F]过滤错误 [R]重载" -ForegroundColor Green
     Write-Host "========================================================" -ForegroundColor Cyan
 
     function Write-LogLine ($line) {
@@ -415,13 +419,49 @@ function Watch-LogFile {
                     Reset-Console # [修复] 清屏时也重置颜色
                     Write-Host "========================================================" -ForegroundColor Cyan
                     Write-Host "  📄 $Title" -ForegroundColor Yellow
-                    Write-Host "  ⌨️  [Q]退出 [S]搜索 [C]清屏 [F]过滤错误" -ForegroundColor Green
+                    # [修改] 清屏后的菜单也同步更新
+                    Write-Host "  ⌨️  [Q]退出 [S]搜索 [C]清屏 [F]过滤错误 [R]重载" -ForegroundColor Green
                     Write-Host "========================================================" -ForegroundColor Cyan
                 }
                 elseif ($key.Key -eq 'F') {
                     $filterErrors = -not $filterErrors
                     $status = if ($filterErrors) { "开启" } else { "关闭" }
                     Write-Host "`n  错误过滤: $status" -ForegroundColor Yellow
+                }
+                # [新增] R 键重载逻辑
+                elseif ($key.Key -eq 'R') {
+                    Write-Host "`n  🔄 正在重新接入日志流..." -ForegroundColor DarkGray
+                    
+                    # 1. 关闭现有流
+                    if ($reader) { $reader.Close() }
+                    if ($stream) { $stream.Close() }
+                    
+                    # 2. 稍微等待以释放句柄
+                    Start-Sleep -Milliseconds 200
+                    
+                    # 3. 刷新界面
+                    Reset-Console
+                    Write-Host "========================================================" -ForegroundColor Cyan
+                    Write-Host "  📄 $Title" -ForegroundColor Yellow
+                    Write-Host "  ⌨️  [Q]退出 [S]搜索 [C]清屏 [F]过滤错误 [R]重载" -ForegroundColor Green
+                    Write-Host "========================================================" -ForegroundColor Cyan
+                    
+                    # 4. 重新显示末尾几行（避免黑屏）
+                    try {
+                        Get-Content $FilePath -Tail 10 -ErrorAction SilentlyContinue | ForEach-Object {
+                            Write-LogLine $_
+                        }
+                    } catch {}
+
+                    # 5. 重新打开流
+                    try {
+                        $stream = [System.IO.File]::Open($FilePath, 'Open', 'Read', 'ReadWrite')
+                        $reader = New-Object System.IO.StreamReader($stream)
+                        $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
+                        Write-Host "  ✓ 日志流已刷新" -ForegroundColor DarkGray
+                    } catch {
+                        Write-Host "  ❌ 重新接入失败: $_" -ForegroundColor Red
+                    }
                 }
             }
         }
@@ -723,49 +763,42 @@ function Start-App {
         return
     }
 
+    # 启动前检查日志大小并轮转
     Check-LogSize $LogFile
 
     Write-Host "  🚀 正在启动 Sing-box ..." -NoNewline
     try {
-        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-        $startInfo.FileName = $ExePath
-        $startInfo.Arguments = "run -c `"$ConfigPath`""
-        $startInfo.WorkingDirectory = $ScriptDir
-        $startInfo.UseShellExecute = $false
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-        $startInfo.CreateNoWindow = $true
+        # [核心修改] 使用 cmd.exe /c 配合 >> 进行底层流重定向
+        # 1. >> "$LogFile" : 将标准输出追加到日志文件
+        # 2. 2>&1          : 将错误输出也重定向到标准输出（即同一个文件）
+        # 3. 这种方式启动的进程，其日志写入不依赖当前的 PowerShell 窗口
         
-        $process = New-Object System.Diagnostics.Process
-        $process.StartInfo = $startInfo
+        $argList = "/c `"`"$ExePath`" run -c `"$ConfigPath`" >> `"$LogFile`" 2>&1`""
         
-        $logAction = {
-            $logPath = $Event.MessageData
-            $data = $Event.SourceEventArgs.Data
-            
-            if (-not [string]::IsNullOrEmpty($data)) {
-                try {
-                    [System.IO.File]::AppendAllText($logPath, $data + [Environment]::NewLine)
-                } catch {}
-            }
-        }
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = "cmd.exe"
+        $pinfo.Arguments = $argList
+        $pinfo.WorkingDirectory = $ScriptDir
+        $pinfo.WindowStyle = "Hidden"
+        $pinfo.CreateNoWindow = $true
+        $pinfo.UseShellExecute = $true # 使用 Shell 执行以支持重定向符
         
-        Register-ObjectEvent -InputObject $process -EventName OutputDataReceived -MessageData $LogFile -Action $logAction | Out-Null
-        Register-ObjectEvent -InputObject $process -EventName ErrorDataReceived -MessageData $LogFile -Action $logAction | Out-Null
+        # 启动 cmd wrapper
+        [System.Diagnostics.Process]::Start($pinfo) | Out-Null
         
-        $process.Start() | Out-Null
-        $process.BeginOutputReadLine()
-        $process.BeginErrorReadLine()
-        
+        # 等待 2 秒让 sing-box 真正启动
         Start-Sleep -Seconds 2
         Clear-ProcessCache
         
+        # 获取真正的 sing-box 进程 (cmd 启动后会生成 sing-box 子进程)
         $proc = Get-CachedProcess
+        
         if ($proc) {
             Write-Host " [成功]" -ForegroundColor Green
             Write-Host "    -> 进程 ID      : $($proc.Id)" -ForegroundColor Magenta
             Write-Host "    -> 启动时间     : $($proc.StartTime.ToString('yyyy-MM-dd HH:mm:ss'))" -ForegroundColor DarkGray
             Write-Host "    -> 内存占用     : $([math]::Round($proc.WorkingSet64 / 1MB, 2)) MB" -ForegroundColor DarkGray
+            Write-Host "    -> 日志模式     : 独立后台写入 (Background IO)" -ForegroundColor Cyan
             
             $global:Stats.StartCount++
             $global:Stats.LastStartTime = Get-Date
@@ -773,11 +806,12 @@ function Start-App {
         } else {
             Write-Host " [失败]" -ForegroundColor Red
             Write-Host ""
-            Write-Line "启动失败，正在打开错误日志..." "Yellow"
+            Write-Line "启动检测超时，请检查日志文件。" "Yellow"
             $global:Stats.FailCount++
             Save-Stats
             Start-Sleep -Seconds 1
-            View-FuncLog
+            # 如果启动失败，尝试读取一下日志看最后几行
+            if (Test-Path $LogFile) { Get-Content $LogFile -Tail 5 }
         }
     } catch {
         Write-Host " [异常]" -ForegroundColor Red
