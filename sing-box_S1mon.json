@@ -96,6 +96,7 @@
       {"udp_disable_domain_unmapping":true,"udp_connect":true,"action":"route-options"},
       {"ip_is_private":true,"outbound":"direct"},
       {"clash_mode":"Global","outbound":"GLOBAL"},
+      {"clash_mode":"Direct","ip_version":6,"action":"reject"},
       {"clash_mode":"Direct","outbound":"direct"},
       {"rule_set":"webRTC","action":"reject","method":"drop"},
       {"rule_set":"AWAvenue-Ads","action":"reject","method":"drop"},
@@ -142,6 +143,7 @@
     ]
   }
 }
+
 
 
 
