@@ -63,12 +63,12 @@
   "inbounds": [
     {"tag":"mixed-in","type":"mixed","listen":"0.0.0.0","listen_port":7890,"set_system_proxy":false},
     {"tag":"tun-in","type":"tun","interface_name":"tun0","address":["172.19.0.1/30","fdfe:dcba:9876::1/126"],
-     "mtu":65535,"auto_route":true,"strict_route":true,"auto_redirect":false,
+     "auto_route":true,"strict_route":true,"auto_redirect":false,
      "platform":{"http_proxy":{"enabled":true,"server":"127.0.0.1","server_port":7890}}}
   ],
   "outbounds": [
     {"tag":"🐝 CATCH_ALL","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions","direct"],"interrupt_exist_connections": true},
-    {"tag":"🤖 AI","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
+    {"tag":"📽️ Global Media","type":"selector","outbounds":["🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
     {"tag":"🍎 Apple","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
     {"tag":"📺 Bilibili","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan"],"interrupt_exist_connections": true},
     {"tag":"🖥️ Microsoft","type":"selector","outbounds":["direct","🇭🇰 Hong Kong","🇹🇼 Taiwan","🇸🇬 Singapore","🇯🇵 Japan","🇺🇸 United States","🇺🇳 Other regions"],"interrupt_exist_connections": true},
@@ -98,8 +98,8 @@
       {"clash_mode":"Global","outbound":"GLOBAL"},
       {"clash_mode":"Direct","ip_version":6,"action":"reject"},
       {"clash_mode":"Direct","outbound":"direct"},
-      {"rule_set":"webRTC","action":"reject","method":"drop"},
       {"rule_set":"AWAvenue-Ads","action":"reject","method":"drop"},
+      {"protocol":"stun","action":"reject","method":"drop"},
       {"domain":["abyss.cyapi.cn","ad.cyapi.cn","gather.colorfulclouds.net"],"action":"reject"},
       {"domain_suffix":["steamserver.net"],"outbound":"direct"},
       {"domain_suffix": ["pilipiliultra.com"],"outbound":"📺 Bilibili"},
@@ -108,28 +108,30 @@
       {"outbound":"tg-eu","ip_cidr":["5.28.192.0/18","91.105.192.0/23","91.108.4.0/22","91.108.8.0/22","91.108.56.0/22","95.161.64.0/20","109.239.140.0/24","149.154.160.0/21","185.76.151.0/24","2001:67c:4e8::/48","2a0a:f280:203::/48"]},
       {"network":"icmp","outbound":"direct"},
       {"rule_set":"private","outbound":"direct"},
-      //主要用来拦截Photoshop联网正版检测，此规则按需删除 {"rule_set":"adobe","action":"reject","method":"drop"}, 
+      {"rule_set":"adobe","action":"reject","method":"drop"},
       {"rule_set":"apple","outbound":"🍎 Apple"},
       {"rule_set":"bilibili","outbound":"📺 Bilibili"},
-      {"rule_set":"bahamut","outbound":"🇹🇼 Taiwan"},
-      {"rule_set":"ai","outbound":"🤖 AI"},
+      {"rule_set":"bahamut","outbound":"🇹?? Taiwan"},
+      {"rule_set":"youtube","outbound":"📽️ Global Media"},
+      {"rule_set":"ai","outbound":"🐝 CATCH_ALL"},
       {"rule_set":"github","outbound":"🐝 CATCH_ALL"},
-      {"rule_set":"geosite-microsoft","outbound":"🖥️ Microsoft"},
-      {"rule_set":["telegram","twitter","youtube","google","gfw"],"outbound":"🐝 CATCH_ALL"},
+      {"rule_set":"geosite-microsoft","outbound":"🖥️ Mircosoft"},
+      {"rule_set":"media-!cn","outbound":"📽️ Global Media"},
+      {"rule_set":["telegram","twitter","google","gfw"],"outbound":"🐝 CATCH_ALL"},
       {"rule_set":"cn","outbound":"direct"},
       {"action":"resolve","match_only":true},
       {"rule_set":"cn_ip","outbound":"direct"}
     ],
     "rule_set": [
-      {"tag":"webRTC","type":"remote","url":"https://raw.githubusercontent.com/Kris-Channnn/sing-box-config/refs/heads/main/webRTC.json","download_detour":"🐝 CATCH_ALL"},
+      {"tag":"webRTC","type":"remote","url":"https://raw.githubusercontent.com/Kris-Channnn/sing-box-proxy/refs/heads/main/webRTC.json","download_detour":"🐝 CATCH_ALL"},
       {"tag":"AWAvenue-Ads","type":"remote","url":"https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json","download_detour":"🐝 CATCH_ALL"},
-      {"tag":"private","type":"remote","format":"binary","url":"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs","download_detour":"🐝 CATCH_ALL"},
+      {"tag":"private","type":"remote","url":"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs","download_detour":"🐝 CATCH_ALL"},
+      {"tag":"media-!cn","type":"remote","format":"binary","url":"https://github.com/CHIZI-0618/v2ray-rules-dat/raw/refs/heads/release/singbox_rule_set/geosite-category-social-media-!cn.srs","download_detour":"🐝 CATCH_ALL"},
       {"tag":"ai","type":"remote","format":"binary","url":"https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ai-!cn.srs","download_detour":"direct"},
       {"tag":"adobe","type":"remote","format":"binary","url":"https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/adobe.srs","download_detour":"direct"},
       {"tag":"apple","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/apple.srs","download_detour":"direct"},
       {"tag":"telegram","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/telegram.srs","download_detour":"direct"},
       {"tag":"telegram_ip","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/telegram.srs","download_detour":"direct"},
-      {"tag":"cloudflare-cn","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/cloudflare-cn@cn.srs","download_detour":"direct"},
       {"tag":"github","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/github.srs","download_detour":"direct"},
       {"tag":"geosite-microsoft","type":"remote","format":"binary","url":"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/microsoft.srs","download_detour":"direct"},
       {"tag":"twitter","type":"remote","format":"binary","url":"https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/twitter.srs","download_detour":"direct"},
@@ -143,6 +145,7 @@
     ]
   }
 }
+
 
 
 
