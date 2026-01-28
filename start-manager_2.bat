@@ -41,14 +41,15 @@ if %errorlevel% equ 0 (
     :: --size 140,45 必须紧跟在 wt.exe 后面，作为全局参数
     :: ---------------------------------------------------
     
-    start "" "wt.exe" --size 100,40 -w 0 nt -d . --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
+    start "" "wt.exe" --size 110,40 -w 0 nt -d . --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
     
     exit
 ) else (
     echo [INFO] 未检测到 Windows Terminal，使用默认控制台。
     
     :: 降级方案：强制拉大 CMD 窗口
-    mode con: cols=100 lines=40
+    mode con: cols=110 lines=40
     powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
     pause
+
 )
