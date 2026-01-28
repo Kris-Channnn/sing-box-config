@@ -115,7 +115,7 @@
       {"rule_set":"youtube","outbound":"📽️ Global Media"},
       {"rule_set":"ai","outbound":"🐝 CATCH_ALL"},
       {"rule_set":"github","outbound":"🐝 CATCH_ALL"},
-      {"rule_set":"geosite-microsoft","outbound":"🖥️ Mircosoft"},
+      {"rule_set":"geosite-microsoft","outbound":"🖥️ Microsoft"},
       {"rule_set":"media-!cn","outbound":"📽️ Global Media"},
       {"rule_set":["telegram","twitter","google","gfw"],"outbound":"🐝 CATCH_ALL"},
       {"rule_set":"cn","outbound":"direct"},
@@ -145,6 +145,7 @@
     ]
   }
 }
+
 
 
 
