@@ -3,7 +3,7 @@
 
 需要使用reF1nd版内核使用
 
-singbox-manager.ps1为sing-box.exe管理脚本（cmd后台运行版本），使用cmd.exe配合 >>重定向运行，轻量化。需放在与sing-box.exe同一目录下，
+singbox-manager.ps1为sing-box.exe管理脚本（cmd后台运行版本），使用cmd.exe配合 >>重定向运行，轻量化。
 
 singbox-manager_2.ps1引入了第三方工具WinSW将sing-box封装为标准的Windows服务，功能更齐全，适合服务器或多用户电脑，系统稳定性和后台管理效率更佳
 
