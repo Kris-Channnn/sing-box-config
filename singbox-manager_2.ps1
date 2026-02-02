@@ -412,19 +412,40 @@ function Search-Log-Internal {
     param([string]$Keyword)
     Reset-Console
     Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "  🔍 日志搜索: '$Keyword'" -ForegroundColor Yellow
+    Write-Host "  🔍 日志搜索: '$Keyword' (显示最近 100 条匹配及上下文)" -ForegroundColor Yellow
     Write-Host "========================================================" -ForegroundColor Cyan
     
     if (-not (Test-Path $LogFile)) { return }
     
     try {
-        $results = Get-Content $LogFile -ErrorAction Stop | Select-String -Pattern $Keyword -Context 1,1 | Select-Object -Last 20
+        # [修改1] 将显示数量从 20 提升到 50 (Select-Object -Last 50)
+        # [保留] Context 1,1 表示同时获取匹配行的 前一行 和 后一行
+        $results = Get-Content $LogFile -ErrorAction Stop | Select-String -Pattern $Keyword -Context 1,1 | Select-Object -Last 100
+        
         if ($results) {
-            foreach ($result in $results) {
-                $line = $result.Line.Trim()
-                if ($line -match 'error|fatal|panic') { Write-Host $line -ForegroundColor Red }
-                elseif ($line -match 'warn') { Write-Host $line -ForegroundColor Yellow }
-                else { Write-Host $line -ForegroundColor Gray }
+            foreach ($matchItem in $results) {
+                # [修改2] 显示前置上下文 (PreContext)，用深灰色显示
+                if ($matchItem.Context.PreContext) {
+                    foreach ($pre in $matchItem.Context.PreContext) { 
+                        Write-Host "   $($pre.Trim())" -ForegroundColor DarkGray 
+                    }
+                }
+
+                # 显示匹配行 (增加 >> 标记以突出显示)
+                $line = $matchItem.Line.Trim()
+                if ($line -match 'error|fatal|panic') { Write-Host ">> $line" -ForegroundColor Red }
+                elseif ($line -match 'warn') { Write-Host ">> $line" -ForegroundColor Yellow }
+                else { Write-Host ">> $line" -ForegroundColor White }
+
+                # [修改2] 显示后置上下文 (PostContext)，用深灰色显示
+                if ($matchItem.Context.PostContext) {
+                    foreach ($post in $matchItem.Context.PostContext) { 
+                        Write-Host "   $($post.Trim())" -ForegroundColor DarkGray 
+                    }
+                }
+                
+                # 添加分隔线，区分不同时间段的日志
+                Write-Host "   ----------------" -ForegroundColor DarkGray
             }
         } else {
             Write-Host "  未找到匹配项。" -ForegroundColor DarkGray
