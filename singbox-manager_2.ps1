@@ -50,6 +50,7 @@ $LogFile      = Join-Path $ScriptDir "$ServiceBase.err.log"
 $PidFile      = Join-Path $ScriptDir "service.pid"
 $ConfigBackupDir = Join-Path $ScriptDir "config_backups"
 $LogArchiveDir   = Join-Path $ScriptDir "log_archives"
+$ConfigNameFile  = Join-Path $ScriptDir ".current_config_name"
 $WinSWUrl     = "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW.NET461.exe"
 $TaskName     = "SingBox_Delayed_Start"
 
@@ -620,11 +621,14 @@ function Select-Config {
 
     if ($input -match '^\d+$' -and [int]$input -gt 0 -and [int]$input -le $configs.Count) {
         $selected = $configs[[int]$input - 1]
-        if ($selected.Name -eq "config.json") { return }
-
+        if ($selected.Name -eq "config.json") { return }  
+        # [新增] 关键修改：在覆盖前强制备份当前的 config.json
+        Write-Line "正在备份旧配置到 config_backups 目录..." "DarkGray"
+        Backup-Config-Wrapper
         Write-Line "正在应用: $($selected.Name) -> config.json ..." "Yellow"
         try {
             Copy-Item $selected.FullName -Destination $ConfigPath -Force
+            Set-Content $ConfigNameFile -Value $selected.Name -Force
             Write-Line "✅ 配置文件替换成功" "Green"
             Write-Host "  是否立即重启服务生效? (Y/N)" -ForegroundColor DarkGray
             $doRestart = Read-Choice -ValidKeys "y","n"
@@ -760,8 +764,11 @@ function Show-Monitor {
 
                 # --- 渲染界面 (使用固定宽度与强力擦除) ---
                 $pad = " " * 20 
+                $cfgNameFile = Join-Path $ScriptDir ".current_config_name"
+                $displayCfgName = "config.json"
+                if (Test-Path $cfgNameFile) { $displayCfgName = (Get-Content $cfgNameFile -Raw).Trim() }
                 Write-Host "  🔎 监控进程 : $($procInfo.Name)$pad" -ForegroundColor White
-                Write-Host "  📂 配置文件 : $(Split-Path $ConfigPath -Leaf)$pad" -ForegroundColor DarkGray
+                Write-Host "  📂 配置文件 : $displayCfgName$pad" -ForegroundColor DarkGray
                 Write-Host "  🆔 进程 PID : $($procInfo.ProcessId)$pad" -ForegroundColor Magenta
                 Write-Host "  ⏱ 运行时长 : $uptimeStr$pad" -ForegroundColor Yellow
                 Write-Host "  💾 内存占用 : $memMB MB$pad" -ForegroundColor Cyan
@@ -1014,8 +1021,19 @@ while ($true) {
         "8" { Check-Config }
         "a" { Update-WinSW }
         "b" { Set-AutoStart }
-        "0" { Stop-Service-Wrapper; Write-Line "正在退出..." "Gray"; exit }
-        "q" { exit }
-        "Escape" { exit }
+        "0" { 
+            Stop-Service-Wrapper
+            if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
+            Write-Line "正在退出..." "Gray"
+            exit 
+        }
+        "q" { 
+            if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
+            exit 
+        }
+        "Escape" { 
+            if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
+            exit 
+        }
     }
 }
