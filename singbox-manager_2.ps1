@@ -941,6 +941,69 @@ function Test-AdvancedNetwork {
     Wait-Key | Out-Null
 }
 
+# ==================== 系统代理控制 (新增模块) ====================
+
+function Get-InboundPort {
+    # 尝试从配置文件解析 HTTP/Mixed 端口
+    if (Test-Path $ConfigPath) {
+        try {
+            $json = Get-Content $ConfigPath -Raw | ConvertFrom-Json
+            foreach ($in in $json.inbounds) {
+                # 优先寻找 mixed 或 http 类型的入站
+                if ($in.type -match "mixed|http") {
+                    return if ($in.listen_port) { $in.listen_port } else { $in.port }
+                }
+            }
+        } catch {}
+    }
+    return 7890 # 默认回退端口，根据你的实际情况修改
+}
+
+function Toggle-SystemProxy {
+    Reset-Console
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "  🔌 系统代理切换 (System Proxy Toggle)" -ForegroundColor Yellow
+    Write-Host "========================================================" -ForegroundColor Cyan
+
+    $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+    $current = Get-ItemProperty -Path $RegistryPath -Name ProxyEnable -ErrorAction SilentlyContinue
+    $newState = if ($current.ProxyEnable -eq 1) { 0 } else { 1 }
+    
+    if ($newState -eq 1) {
+        $port = Get-InboundPort
+        $proxyAddr = "127.0.0.1:$port"
+        
+        Write-Line "正在开启系统代理 -> $proxyAddr ..." "Cyan"
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 1
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyServer" -Value $proxyAddr
+        # 排除列表：本地回环和局域网不走代理
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyOverride" -Value "<local>;localhost;127.*;192.168.*;10.*;172.16.*"
+        Write-Line "✅ 系统代理已开启" "Green"
+    } else {
+        Write-Line "正在关闭系统代理..." "Cyan"
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 0
+        Write-Line "✅ 系统代理已关闭" "Yellow"
+    }
+
+    # [关键步骤] 调用 WinInet API 立即刷新系统设置 (无需重启浏览器)
+    try {
+        $signature = @'
+        [DllImport("wininet.dll", SetLastError = true)]
+        public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
+'@
+        if (-not ([System.Management.Automation.PSTypeName]'WinInetUtils').Type) {
+            Add-Type -MemberDefinition $signature -Name "WinInetUtils" -Namespace "WinInet"
+        }
+        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0) # INTERNET_OPTION_SETTINGS_CHANGED
+        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0) # INTERNET_OPTION_REFRESH
+        Write-Line "🔄 系统网络状态已刷新" "DarkGray"
+    } catch {
+        Write-Line "⚠ 刷新 API 调用失败，可能需要重启浏览器生效" "Red"
+    }
+    
+    Start-Sleep -Seconds 1
+}
+
 function Check-Config-Silent {
     try {
         $process = Start-Process -FilePath $SingBoxPath -ArgumentList "check -c `"$ConfigPath`"" -NoNewWindow -Wait -PassThru -ErrorAction Stop
@@ -961,9 +1024,19 @@ function Check-Config {
 function Show-Menu {
     Draw-Title
     $state = Get-ServiceState
+    
+    # 获取当前代理状态用于显示
+    $proxyStatus = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -ErrorAction SilentlyContinue).ProxyEnable
+    $proxyStr = if ($proxyStatus -eq 1) { "[开启]" } else { "[关闭]" }
+    $proxyColor = if ($proxyStatus -eq 1) { "Green" } else { "DarkGray" }
+
     Write-Host "  服务状态: " -NoNewline
-    if ($state -eq "Running") { Write-Host "运行中" -ForegroundColor Green }
-    else { Write-Host "已停止" -ForegroundColor Red }
+    if ($state -eq "Running") { Write-Host "运行中" -ForegroundColor Green -NoNewline }
+    else { Write-Host "已停止" -ForegroundColor Red -NoNewline }
+    
+    # 在同一行显示代理状态，节省空间
+    Write-Host "    系统代理: " -NoNewline
+    Write-Host $proxyStr -ForegroundColor $proxyColor
     
     Write-Host "========================================================" -ForegroundColor DarkGray
     Write-Host "`n  [ 核心控制 ]" -ForegroundColor Cyan
@@ -976,11 +1049,13 @@ function Show-Menu {
     Write-Line "5. 切换配置 (Switch Config)" "Magenta"
     Write-Line "6. 完整日志 (Full Log)" "White"
     Write-Line "7. 网络诊断 (Network Diag)" "Blue"
-    Write-Line "8. 检查配置 (Check Config)" "DarkGray"
+    Write-Line "8. 检查配置 (Check Config)" "Green"
     
-    Write-Host "`n  [ 系统维护 ]" -ForegroundColor Cyan
-    Write-Line "a. 更新 WinSW 内核" "DarkYellow"
-    Write-Line "b. 开机自启设置 (AutoStart)" "DarkCyan"
+    # ========== 新增选项 ==========
+    Write-Host "`n  [ 系统与维护 ]" -ForegroundColor Cyan
+    Write-Line "a. 系统代理开关 $proxyStr" "White"  # <--- 这里新增
+    Write-Line "b. 更新 WinSW 内核" "DarkYellow"
+    Write-Line "c. 开机自启设置 (AutoStart)" "DarkCyan"
     
     Write-Host "========================================================" -ForegroundColor DarkGray
     Write-Host "  0. 停止服务并退出  Q. 退出脚本  Esc. 退出脚本" -ForegroundColor Gray
@@ -1003,12 +1078,14 @@ if ($Stop) { Stop-Service-Wrapper; exit }
 if ($Restart) { Restart-Service-Wrapper; exit }
 if ($Monitor) { Show-Monitor; exit }
 
+# ... (前面的代码)
+
 while ($true) {
     Show-Menu
     Write-Host "`n  请选择 (支持按键直接触发)" -ForegroundColor DarkGray
     
-    # 允许 0-9, a, b, q, Esc
-    $choice = Read-Choice -ValidKeys "1","2","3","4","5","6","7","8","a","b","0","q"
+    # [修改] 在 ValidKeys 列表中增加 "9"
+    $choice = Read-Choice -ValidKeys "1","2","3","4","5","6","7","8","9","a","b","0","q"
     
     switch ($choice) {
         "1" { Start-Service-Wrapper; Wait-Key | Out-Null }
@@ -1019,9 +1096,14 @@ while ($true) {
         "6" { View-Log }
         "7" { Test-AdvancedNetwork }
         "8" { Check-Config }
-        "a" { Update-WinSW }
-        "b" { Set-AutoStart }
+        
+        "a" { Toggle-SystemProxy }
+        "b" { Update-WinSW }
+        "c" { Set-AutoStart }
         "0" { 
+            # 建议：退出时是否要自动关闭代理？
+            # 如果希望退出脚本时自动关代理，可以取消下面这行的注释
+            # Toggle-SystemProxy -Off 
             Stop-Service-Wrapper
             if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
             Write-Line "正在退出..." "Gray"
