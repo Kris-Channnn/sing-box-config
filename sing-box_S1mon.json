@@ -40,6 +40,7 @@
        "dns.google": ["8.8.8.8", "8.8.4.4"], "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249"]}}
     ],
     "rules": [
+      {"clash_mode": "Global", "server": "fake-ip-dns-server", "rewrite_ttl": 1},
       {"clash_mode": "Global", "server": "proxy_dns"},
       {"clash_mode": "Direct", "query_type": "AAAA", "action": "reject"},
       {"clash_mode": "Direct", "server": "direct_dns"},
@@ -92,7 +93,7 @@
       {"domain": ["Mijia Cloud"], "domain_suffix": ["push.apple.com"], "rule_set": ["telegram_ip"], "invert": true, "action": "sniff"},
       {"type": "logical", "mode": "and", "rules": [{"network": "udp"}, {"port": 443}, {"rule_set": "cn_ip", "invert": true}], "action": "reject"},
       {"type": "logical", "mode": "or", "rules": [{"protocol": "dns"}, {"port": 53}], "action": "hijack-dns"},
-      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe"], "outbound": "direct"},  // 此配置为Windows端ssh设置，安卓端请删除
+      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"},  // 此配置为Windows端ssh设置，安卓端请删除
       {"udp_disable_domain_unmapping": true, "udp_connect": true, "action": "route-options"},
       {"ip_is_private": true, "outbound": "direct"},
       {"clash_mode": "Global", "outbound": "GLOBAL"},
@@ -145,5 +146,6 @@
     ]
   }
 }
+
 
 
