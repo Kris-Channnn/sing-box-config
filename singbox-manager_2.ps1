@@ -1103,7 +1103,7 @@ while ($true) {
         "0" { 
             # 建议：退出时是否要自动关闭代理？
             # 如果希望退出脚本时自动关代理，可以取消下面这行的注释
-            Toggle-SystemProxy -Off 
+            # Toggle-SystemProxy -Off 
             Stop-Service-Wrapper
             if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
             Write-Line "正在退出..." "Gray"
@@ -1119,4 +1119,5 @@ while ($true) {
         }
     }
 }
+
 
