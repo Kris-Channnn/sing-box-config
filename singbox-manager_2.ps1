@@ -960,32 +960,63 @@ function Get-InboundPort {
 }
 
 function Toggle-SystemProxy {
-    Reset-Console
-    Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "  🔌 系统代理切换 (System Proxy Toggle)" -ForegroundColor Yellow
-    Write-Host "========================================================" -ForegroundColor Cyan
+    param (
+        [ValidateSet("Toggle", "On", "Off")]
+        [string]$Mode = "Toggle" 
+    )
 
     $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
-    $current = Get-ItemProperty -Path $RegistryPath -Name ProxyEnable -ErrorAction SilentlyContinue
-    $newState = if ($current.ProxyEnable -eq 1) { 0 } else { 1 }
+    $current = (Get-ItemProperty -Path $RegistryPath -Name ProxyEnable -ErrorAction SilentlyContinue).ProxyEnable
+
+    # 1. 确定目标状态 (1=开, 0=关)
+    $targetState = -1
     
-    if ($newState -eq 1) {
-        $port = Get-InboundPort
-        $proxyAddr = "127.0.0.1:$port"
-        
-        Write-Line "正在开启系统代理 -> $proxyAddr ..." "Cyan"
-        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 1
-        Set-ItemProperty -Path $RegistryPath -Name "ProxyServer" -Value $proxyAddr
-        # 排除列表：本地回环和局域网不走代理
-        Set-ItemProperty -Path $RegistryPath -Name "ProxyOverride" -Value "<local>;localhost;127.*;192.168.*;10.*;172.16.*"
-        Write-Line "✅ 系统代理已开启" "Green"
-    } else {
-        Write-Line "正在关闭系统代理..." "Cyan"
-        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 0
-        Write-Line "✅ 系统代理已关闭" "Yellow"
+    if ($Mode -eq "Toggle") {
+        $targetState = if ($current -eq 1) { 0 } else { 1 }
+    }
+    elseif ($Mode -eq "On") {
+        if ($current -eq 1) { return } # 已经是开启状态，无需操作
+        $targetState = 1
+    }
+    elseif ($Mode -eq "Off") {
+        if ($current -eq 0) { return } # [关键] 已经是关闭状态，直接静默返回，防止误开！
+        $targetState = 0
     }
 
-    # [关键步骤] 调用 WinInet API 立即刷新系统设置 (无需重启浏览器)
+    # 2. 执行状态变更
+    Reset-Console
+    if ($targetState -eq 1) {
+        # === 开启逻辑 ===
+        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host "  🔌 系统代理控制 (System Proxy Control)" -ForegroundColor Yellow
+        Write-Host "========================================================" -ForegroundColor Cyan
+        
+        $port = Get-InboundPort
+        $proxyAddr = "127.0.0.1:$port"
+        Write-Line "正在开启系统代理 -> $proxyAddr ..." "Cyan"
+        
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 1
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyServer" -Value $proxyAddr
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyOverride" -Value "<local>;localhost;127.*;192.168.*;10.*;172.16.*"
+        
+        Write-Line "✅ 系统代理已开启" "Green"
+    
+    } elseif ($targetState -eq 0) {
+        # === 关闭逻辑 ===
+        # 仅在手动切换模式下显示大标题，避免退出时闪屏
+        if ($Mode -eq "Toggle") {
+            Write-Host "========================================================" -ForegroundColor Cyan
+            Write-Host "  🔌 系统代理控制 (System Proxy Control)" -ForegroundColor Yellow
+            Write-Host "========================================================" -ForegroundColor Cyan
+            Write-Line "正在关闭系统代理..." "Cyan"
+        }
+        
+        Set-ItemProperty -Path $RegistryPath -Name "ProxyEnable" -Value 0
+        
+        if ($Mode -eq "Toggle") { Write-Line "✅ 系统代理已关闭" "Yellow" }
+    }
+
+    # 3. 刷新系统 API (WinInet)
     try {
         $signature = @'
         [DllImport("wininet.dll", SetLastError = true)]
@@ -994,14 +1025,11 @@ function Toggle-SystemProxy {
         if (-not ([System.Management.Automation.PSTypeName]'WinInetUtils').Type) {
             Add-Type -MemberDefinition $signature -Name "WinInetUtils" -Namespace "WinInet"
         }
-        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0) # INTERNET_OPTION_SETTINGS_CHANGED
-        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0) # INTERNET_OPTION_REFRESH
-        Write-Line "🔄 系统网络状态已刷新" "DarkGray"
-    } catch {
-        Write-Line "⚠ 刷新 API 调用失败，可能需要重启浏览器生效" "Red"
-    }
-    
-    Start-Sleep -Seconds 1
+        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0)
+        [WinInet.WinInetUtils]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0)
+    } catch {}
+
+    if ($Mode -eq "Toggle") { Start-Sleep -Seconds 1 }
 }
 
 function Check-Config-Silent {
@@ -1097,13 +1125,12 @@ while ($true) {
         "7" { Test-AdvancedNetwork }
         "8" { Check-Config }
         
-        "a" { Toggle-SystemProxy }
+        "a" { Toggle-SystemProxy -Mode "Toggle" }
         "b" { Update-WinSW }
         "c" { Set-AutoStart }
         "0" { 
-            # 建议：退出时是否要自动关闭代理？
-            # 如果希望退出脚本时自动关代理，可以取消下面这行的注释
-            # Toggle-SystemProxy -Off 
+            # [修正] 使用 -Mode "Off" 参数，确保只关不开
+            Toggle-SystemProxy -Mode "Off"
             Stop-Service-Wrapper
             if (Test-Path $ConfigNameFile) { Remove-Item $ConfigNameFile -Force }
             Write-Line "正在退出..." "Gray"
@@ -1119,5 +1146,3 @@ while ($true) {
         }
     }
 }
-
-
