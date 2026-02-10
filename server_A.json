@@ -16,6 +16,7 @@
       "tag": "A",
       "type": "remote",
       "url": "订阅链接1",
+      "user_agent": "sing-box/v1.12.0",
       "download_detour": "direct",
       "update_interval": "24h0m0s",
       "health_check": {"enabled": true, "url": "https://www.gstatic.com/generate_204", "interval": "30m0s", "timeout": "3s"}
@@ -24,6 +25,7 @@
       "tag": "B",
       "type": "remote",
       "url": "订阅链接2",
+      "user_agent": "sing-box/v1.12.0",
       "download_detour": "direct",
       "update_interval": "24h0m0s",
       "health_check": {"enabled": true, "url": "https://www.gstatic.com/generate_204", "interval": "30m0s", "timeout": "3s"}
@@ -32,17 +34,18 @@
   "dns":  {
     "servers": [
       {"tag": "proxy_server_dns", "type": "https", "server": "doh.pub", "domain_resolver": "hosts"},
-      {"tag": "direct_dns", "type": "https", "server": "dns.alidns.com", "domain_resolver": "hosts", "strategy": "ipv4_only"},
-      {"tag": "proxy_dns", "type": "https", "server": "cloudflare-dns.com", "domain_resolver": "hosts", "detour": "🐝 CATCH_ALL"},
+      {"tag": "direct_dns", "type": "https", "server": "dns.alidns.com", "domain_resolver": "hosts"},
+      {"tag": "proxy_dns", "type": "https", "server": "dns.google", "domain_resolver": "hosts", "detour": "🐝 CATCH_ALL"},
       {"tag": "local", "type": "local"},
       {"tag": "fake-ip-dns-server", "type": "fakeip", "inet4_range": "198.18.0.0/15", "inet6_range": "fc00::/18"},
       {"tag": "hosts", "type": "hosts", "predefined": {"dns.alidns.com": ["223.5.5.5", "223.6.6.6"], "doh.pub": ["1.12.12.21", "120.53.53.53"],
        "dns.google": ["8.8.8.8", "8.8.4.4"], "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249"]}}
     ],
     "rules": [
-      {"clash_mode": "Global", "server": "fake-ip-dns-server", "rewrite_ttl": 1},
+      {"clash_mode": "Global", "query_type": ["SVCB", "HTTPS"], "action": "reject"},
+      {"clash_mode": "Global", "query_type": ["A", "AAAA"], "server": "fake-ip-dns-server", "rewrite_ttl": 1},
       {"clash_mode": "Global", "server": "proxy_dns"},
-      {"clash_mode": "Direct", "query_type": "AAAA", "action": "reject"},
+      {"clash_mode": "Direct", "query_type": "AAAA", "action": "reject"}, // 如若本地网络不支持ipv6，加上词条适用于Clash模式Direct下，网页端访问连接成功
       {"clash_mode": "Direct", "server": "direct_dns"},
       {"domain_suffix": ["market.xiaomi.com"], "server": "direct_dns"},
       {"domain_suffix": ["lancache.steamcontent.com"], "server": "proxy_dns"},
@@ -88,37 +91,33 @@
     "default_domain_resolver": "proxy_server_dns",
     "default_domain_match_strategy": "prefer_fqdn",
     "rules": [
-      {"type": "logical", "mode": "and", "rules": [{"process_name": "Weixin.exe"}, {"ip_version": 6}, {"default_interface_address": ["2000::/3"], "invert": true}], "action": "reject"},
+      {"type": "logical", "mode": "and", "rules": [{"process_name": ["WeChat.exe", "Weixin.exe", "WeChatApp.exe"]}, {"ip_version": 6}, {"default_interface_address": ["2000::/3"], "invert": true}], "action": "reject"},
       // 此配置为Windows端，Android端请将"process_name": "Weixin.exe"换成"package_name": "com.tencent.mm"，用于解决微信顽固ipv6导致图片无法成功发送的问题
       {"domain": ["Mijia Cloud"], "domain_suffix": ["push.apple.com"], "rule_set": ["telegram_ip"], "invert": true, "action": "sniff"},
-      {"type": "logical", "mode": "and", "rules": [{"network": "udp"}, {"port": 443}, {"rule_set": "cn_ip", "invert": true}], "action": "reject"},
       {"type": "logical", "mode": "or", "rules": [{"protocol": "dns"}, {"port": 53}], "action": "hijack-dns"},
-      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"},  // 此配置为Windows端ssh设置，安卓端请删除
       {"udp_disable_domain_unmapping": true, "udp_connect": true, "action": "route-options"},
       {"ip_is_private": true, "outbound": "direct"},
       {"clash_mode": "Global", "outbound": "GLOBAL"},
-      {"clash_mode": "Direct", "ip_version": 6, "action": "reject"},
+      {"clash_mode": "Direct", "ip_version": 6, "action": "reject"}, // 如若本地网络不支持ipv6，加上词条适用于Clash模式Direct下，网页端访问连接成功
       {"clash_mode": "Direct", "outbound": "direct"},
-      {"rule_set": "AWAvenue-Ads", "action": "reject", "method": "drop"},
-      {"rule_set": "webRTC", "action": "reject", "method": "drop"},
+      {"rule_set": "private", "outbound": "direct"},
+      {"network": "icmp", "outbound": "direct"},
+      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"},
+      {"rule_set": ["AWAvenue-Ads", "webRTC", "adobe"], "action": "reject", "method": "drop"}, // adobe是为了屏蔽Adobe旗下软件的正版联网验证，可选择性删除
       {"domain": ["abyss.cyapi.cn", "ad.cyapi.cn", "gather.colorfulclouds.net"], "action": "reject"},
       {"domain_suffix": ["steamserver.net"], "outbound": "direct"},
       {"domain_suffix":  ["pilipiliultra.com"], "outbound": "📺 Bilibili"},
       {"outbound": "tg-sg", "ip_cidr": ["91.108.16.0/21", "91.108.56.0/23", "149.154.168.0/22", "2001:b28:f23c::/48", "2001:b28:f23f::/48"]},
       {"outbound": "tg-us", "ip_cidr": ["91.108.12.0/22", "149.154.172.0/22", "2001:b28:f23d::/48"]},
       {"outbound": "tg-eu", "ip_cidr": ["5.28.192.0/18", "91.105.192.0/23", "91.108.4.0/22", "91.108.8.0/22", "91.108.56.0/22", "95.161.64.0/20", "109.239.140.0/24", "149.154.160.0/21", "185.76.151.0/24", "2001:67c:4e8::/48", "2a0a:f280:203::/48"]},
-      {"network": "icmp", "outbound": "direct"},
-      {"rule_set": "private", "outbound": "direct"},
-      {"rule_set": "adobe", "action": "reject", "method": "drop"},  // 用于屏蔽adobe正版联网检测，可删除
+      {"protocol":"quic", "rule_set": "youtube", "action": "reject"},
       {"rule_set": "apple", "outbound": "🍎 Apple"},
       {"rule_set": "bilibili", "outbound": "📺 Bilibili"},
       {"rule_set": "bahamut", "outbound": "🇹🇼 Taiwan"},
-      {"rule_set": "youtube", "outbound": "📽️ Global Media"},
-      {"rule_set": "ai", "outbound": "🐝 CATCH_ALL"},
       {"rule_set": "github", "outbound": "🐝 CATCH_ALL"},
       {"rule_set": "geosite-microsoft", "outbound": "🖥️ Microsoft"},
-      {"rule_set": "media-!cn", "outbound": "📽️ Global Media"},
-      {"rule_set": ["telegram", "twitter", "google", "gfw"], "outbound": "🐝 CATCH_ALL"},
+      {"rule_set": ["youtube", "media-!cn"], "outbound": "📽️ Global Media"},
+      {"rule_set": ["ai", "telegram", "twitter", "google", "gfw"], "outbound": "🐝 CATCH_ALL"},
       {"rule_set": "cn", "outbound": "direct"},
       {"action": "resolve", "match_only": true},
       {"rule_set": "cn_ip", "outbound": "direct"}
@@ -146,6 +145,7 @@
     ]
   }
 }
+
 
 
 
