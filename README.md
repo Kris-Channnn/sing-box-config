@@ -13,4 +13,4 @@ start-manager.bat为启动脚本程序（cmd命令提示符），可放在任意
 
 start-manager_2.bat为启动Windows“终端”powershell版本，美化一点
 
-sing-box_S1mon.json为现用配置
+server_A.json为现用配置
