@@ -1113,7 +1113,7 @@ while ($true) {
     Write-Host "`n  请选择 (支持按键直接触发)" -ForegroundColor DarkGray
     
     # [修改] 在 ValidKeys 列表中增加 "9"
-    $choice = Read-Choice -ValidKeys "1","2","3","4","5","6","7","8","9","a","b","0","q"
+    $choice = Read-Choice -ValidKeys "1","2","3","4","5","6","7","8","9","a","b","c","0","q"
     
     switch ($choice) {
         "1" { Start-Service-Wrapper; Wait-Key | Out-Null }
@@ -1146,3 +1146,4 @@ while ($true) {
         }
     }
 }
+
