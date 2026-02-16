@@ -7,7 +7,7 @@
       "external_controller": "[::]:9090",
       "external_ui": "ui",
       "external_ui_download_url": "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip",
-      "external_ui_download_detour": "🐝 CATCH_ALL",
+      "external_ui_download_detour": "📦 CATCH_ALL",
       "external_ui_update_interval": "24h0m0s"
     }
   },
@@ -35,7 +35,7 @@
     "servers": [
       {"tag": "proxy_server_dns", "type": "https", "server": "doh.pub", "domain_resolver": "hosts"},
       {"tag": "direct_dns", "type": "https", "server": "dns.alidns.com", "domain_resolver": "hosts"},
-      {"tag": "proxy_dns", "type": "https", "server": "dns.google", "domain_resolver": "hosts", "detour": "🐝 CATCH_ALL"},
+      {"tag": "proxy_dns", "type": "https", "server": "dns.google", "domain_resolver": "hosts", "detour": "📦 CATCH_ALL"},
       {"tag": "local", "type": "local"},
       {"tag": "fake-ip-dns-server", "type": "fakeip", "inet4_range": "198.18.0.0/15", "inet6_range": "fc00::/18"},
       {"tag": "hosts", "type": "hosts", "predefined": {"dns.alidns.com": ["223.5.5.5", "223.6.6.6"], "doh.pub": ["1.12.12.21", "120.53.53.53"],
@@ -67,9 +67,8 @@
      "platform": {"http_proxy": {"enabled": true, "server": "127.0.0.1", "server_port": 7890}}}
   ],
   "outbounds": [
-    {"tag": "🐝 CATCH_ALL", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
+    {"tag": "📦 CATCH_ALL", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "🧭 Google Services", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
-    {"tag": "📽️ Global Media", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "🍎 Apple", "type": "selector", "outbounds": ["direct", "🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "📺 Bilibili", "type": "selector", "outbounds": ["direct", "🇭🇰 Hong Kong", "🇹🇼 Taiwan"], "interrupt_exist_connections": true},
     {"tag": "🖥️ Microsoft", "type": "selector", "outbounds": ["direct", "🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
@@ -82,11 +81,11 @@
     {"tag": "🇯🇵 Japan", "type": "selector", "use_all_providers": true, "outbounds": [], "include": "(?i)日本|jp|japan|tokyo|osaka", "interrupt_exist_connections": true},
     {"tag": "🇺🇸 United States", "type": "selector", "use_all_providers": true, "outbounds": [], "include": "(?i)美国|us|united states|america|los angeles|san jose|silicon valley", "interrupt_exist_connections": true},
     {"tag": "🇺🇳 Other regions", "type": "selector", "use_all_providers": true, "outbounds": [], "exclude": "(?i)香港|台湾|日本|新加坡|美国|hk|tw|jp|sg|us|🇨🇳|🇺🇸|🇭🇰|🇸🇬|🇯🇵", "interrupt_exist_connections": true},
-    {"tag": "GLOBAL", "type": "selector", "outbounds": ["🐝 CATCH_ALL", "🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"]},
+    {"tag": "GLOBAL", "type": "selector", "outbounds": ["📦 CATCH_ALL", "🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"]},
     {"tag": "direct", "type": "direct", "domain_resolver": "local"}
   ],
   "route": {
-    "final": "🐝 CATCH_ALL",
+    "final": "📦 CATCH_ALL",
     "auto_detect_interface": true,
     "override_android_vpn": true,  // Android端设置，Windows端请去掉
     "default_domain_resolver": "proxy_server_dns",
@@ -115,20 +114,18 @@
       {"rule_set": "apple", "outbound": "🍎 Apple"},
       {"rule_set": "bilibili", "outbound": "📺 Bilibili"},
       {"rule_set": "bahamut", "outbound": "🇹🇼 Taiwan"},
-      {"rule_set": "github", "outbound": "🐝 CATCH_ALL"},
+      {"rule_set": "github", "outbound": "📦 CATCH_ALL"},
       {"rule_set": "geosite-microsoft", "outbound": "🖥️ Microsoft"},
       {"rule_set": ["youtube", "google"], "outbound": "🧭 Google Services"},
-      {"rule_set": "media-!cn", "outbound": "📽️ Global Media"},
-      {"rule_set": ["ai", "telegram", "twitter", "gfw"], "outbound": "🐝 CATCH_ALL"},
+      {"rule_set": ["ai", "telegram", "twitter", "gfw"], "outbound": "📦 CATCH_ALL"},
       {"rule_set": "cn", "outbound": "direct"},
       {"action": "resolve", "match_only": true},
       {"rule_set": "cn_ip", "outbound": "direct"}
     ],
     "rule_set": [
-      {"tag": "webRTC", "type": "remote", "url": "https://raw.githubusercontent.com/Kris-Channnn/sing-box-proxy/refs/heads/main/webRTC.json", "download_detour": "🐝 CATCH_ALL"},
-      {"tag": "AWAvenue-Ads", "type": "remote", "url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json", "download_detour": "🐝 CATCH_ALL"},
-      {"tag": "private", "type": "remote", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs", "download_detour": "🐝 CATCH_ALL"},
-      {"tag": "media-!cn", "type": "remote", "format": "binary", "url": "https://github.com/CHIZI-0618/v2ray-rules-dat/raw/refs/heads/release/singbox_rule_set/geosite-category-social-media-!cn.srs", "download_detour": "🐝 CATCH_ALL"},
+      {"tag": "webRTC", "type": "remote", "url": "https://raw.githubusercontent.com/Kris-Channnn/sing-box-proxy/refs/heads/main/webRTC.json", "download_detour": "📦 CATCH_ALL"},
+      {"tag": "AWAvenue-Ads", "type": "remote", "url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json", "download_detour": "📦 CATCH_ALL"},
+      {"tag": "private", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs", "download_detour": "📦 CATCH_ALL"},
       {"tag": "ai", "type": "remote", "format": "binary", "url": "https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ai-!cn.srs", "download_detour": "direct"},
       {"tag": "adobe", "type": "remote", "format": "binary", "url": "https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/adobe.srs", "download_detour": "direct"},
       {"tag": "apple", "type": "remote", "format": "binary", "url": "https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/apple.srs", "download_detour": "direct"},
@@ -141,12 +138,13 @@
       {"tag": "google", "type": "remote", "format": "binary", "url": "https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google.srs", "download_detour": "direct"},
       {"tag": "bahamut", "type": "remote", "format": "binary", "url": "https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/bahamut.srs", "download_detour": "direct"},
       {"tag": "bilibili", "type": "remote", "format": "binary", "url": "https://ghfast.top/raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/bilibili.srs", "download_detour": "direct"},
-      {"tag": "gfw", "type": "remote", "format": "binary", "url": "https://github.com/CHIZI-0618/v2ray-rules-dat/raw/refs/heads/release/singbox_rule_set/geosite-gfw.srs", "download_detour": "🐝 CATCH_ALL"},
-      {"tag": "cn", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/YiXuanZX/sing-box-geosite/main/rule/cn-additional-list-clash-classical.srs", "download_detour": "🐝 CATCH_ALL"},
-      {"tag": "cn_ip", "type": "remote", "format": "binary", "url": "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geoip/cn.srs", "download_detour": "🐝 CATCH_ALL"}
+      {"tag": "gfw", "type": "remote", "format": "binary", "url": "https://github.com/CHIZI-0618/v2ray-rules-dat/raw/refs/heads/release/singbox_rule_set/geosite-gfw.srs", "download_detour": "📦 CATCH_ALL"},
+      {"tag": "cn", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/YiXuanZX/sing-box-geosite/main/rule/cn-additional-list-clash-classical.srs", "download_detour": "📦 CATCH_ALL"},
+      {"tag": "cn_ip", "type": "remote", "format": "binary", "url": "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geoip/cn.srs", "download_detour": "📦 CATCH_ALL"}
     ]
   }
 }
+
 
 
 
