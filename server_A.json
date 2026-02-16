@@ -68,6 +68,7 @@
   ],
   "outbounds": [
     {"tag": "🐝 CATCH_ALL", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
+    {"tag": "🧭 Google Services", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "📽️ Global Media", "type": "selector", "outbounds": ["🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "🍎 Apple", "type": "selector", "outbounds": ["direct", "🇭🇰 Hong Kong", "🇹🇼 Taiwan", "🇸🇬 Singapore", "🇯🇵 Japan", "🇺🇸 United States", "🇺🇳 Other regions"], "interrupt_exist_connections": true},
     {"tag": "📺 Bilibili", "type": "selector", "outbounds": ["direct", "🇭🇰 Hong Kong", "🇹🇼 Taiwan"], "interrupt_exist_connections": true},
@@ -116,8 +117,9 @@
       {"rule_set": "bahamut", "outbound": "🇹🇼 Taiwan"},
       {"rule_set": "github", "outbound": "🐝 CATCH_ALL"},
       {"rule_set": "geosite-microsoft", "outbound": "🖥️ Microsoft"},
-      {"rule_set": ["youtube", "media-!cn"], "outbound": "📽️ Global Media"},
-      {"rule_set": ["ai", "telegram", "twitter", "google", "gfw"], "outbound": "🐝 CATCH_ALL"},
+      {"rule_set": ["youtube", "google"], "outbound": "🧭 Google Services"},
+      {"rule_set": "media-!cn", "outbound": "📽️ Global Media"},
+      {"rule_set": ["ai", "telegram", "twitter", "gfw"], "outbound": "🐝 CATCH_ALL"},
       {"rule_set": "cn", "outbound": "direct"},
       {"action": "resolve", "match_only": true},
       {"rule_set": "cn_ip", "outbound": "direct"}
@@ -145,6 +147,7 @@
     ]
   }
 }
+
 
 
 
