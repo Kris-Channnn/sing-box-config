@@ -298,7 +298,7 @@ function View-Log {
         $st = if($filterWarn){"开启"}else{"关闭"}
         
         # 菜单栏
-        Write-Host " [F]过滤警告:$st  [C]清空  [R]重载  [S]搜索  [Esc]退出 " -ForegroundColor White -BackgroundColor DarkBlue
+        Write-Host " [F]过滤警告:$st  [C]清空  [R]重载  [S]搜索  [Esc]退出 " -ForegroundColor White -BackgroundColor DarkGray
         Draw-Separator
     }
     Header
@@ -556,7 +556,7 @@ function Show-Menu {
     Write-Host ""
 
     Write-Host "  [ 功能管理 ]" -F DarkGray
-    Btn "5" "切换配置" "Magenta"; Btn "6" "查看日志" "White" $true
+    Btn "5" "切换配置" "Magenta"; Btn "6" "查看日志" "DarkBlue" $true
     Btn "7" "网络诊断" "Blue"; Btn "8" "配置校验" "Gray" $true
     Write-Host ""
 
@@ -592,4 +592,5 @@ while ($true) {
         "q" { if (Test-Path $ConfigNameFile) { Del $ConfigNameFile -Force }; exit }
         "Escape" { if (Test-Path $ConfigNameFile) { Del $ConfigNameFile -Force }; exit }
     }
+
 }
