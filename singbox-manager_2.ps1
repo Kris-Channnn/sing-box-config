@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-    Sing-box Manager (WinSW Edition) v8.3 Revised
+    Sing-box Manager (WinSW Edition) v8.6 Revised
 .DESCRIPTION
     v8.3 更新日志：
     1. [交互] 全面引入 Esc 键返回机制，子菜单操作更加流畅。
     2. [核心] 新增 Read-Choice 函数，实现无回车菜单选择。
     3. [网络] 保持 v8.2 的 Socket 异步网络诊断。
     4. [日志] 保持 v8.2 的日志搜索与归档功能。
+    5. [日志] v8.6版本更新了日志流，精确到具体行数，检索功能完善。
 #>
 
 param(
@@ -62,7 +63,7 @@ $TitleArt = @"
   ____) | | | | | (_| | |_) | (_) >  <   
  |_____/|_|_| |_|\__, |_.__/ \___/_/\_\  
                   __/ |   Sing-box Manager
-                 |___/    v8.3 (Service) 
+                 |___/    v8.6 (Service) 
 "@
 
 # ==================== 基础工具函数 ====================
@@ -413,45 +414,85 @@ function Search-Log-Internal {
     param([string]$Keyword)
     Reset-Console
     Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "  🔍 日志搜索: '$Keyword' (显示最近 100 条匹配及上下文)" -ForegroundColor Yellow
+    Write-Host "  🔍 日志搜索: '$Keyword' (精确索引 & 智能合并)" -ForegroundColor Yellow
     Write-Host "========================================================" -ForegroundColor Cyan
     
     if (-not (Test-Path $LogFile)) { return }
     
     try {
-        # [修改1] 将显示数量从 20 提升到 50 (Select-Object -Last 50)
-        # [保留] Context 1,1 表示同时获取匹配行的 前一行 和 后一行
-        $results = Get-Content $LogFile -ErrorAction Stop | Select-String -Pattern $Keyword -Context 1,1 | Select-Object -Last 100
+        Write-Host "  正在搜索并建立索引..." -ForegroundColor DarkGray
         
-        if ($results) {
-            foreach ($matchItem in $results) {
-                # [修改2] 显示前置上下文 (PreContext)，用深灰色显示
-                if ($matchItem.Context.PreContext) {
-                    foreach ($pre in $matchItem.Context.PreContext) { 
-                        Write-Host "   $($pre.Trim())" -ForegroundColor DarkGray 
-                    }
-                }
+        # 必须使用 -Path 读取，这样 LineNumber 才是文件的绝对行号，能与 View-Log 对应上
+        $matches = Select-String -Path $LogFile -Pattern $Keyword -Context 1,1 | Select-Object -Last 100
+        
+        if ($matches) {
+            $lineMap = @{}
 
-                # 显示匹配行 (增加 >> 标记以突出显示)
-                $line = $matchItem.Line.Trim()
-                if ($line -match 'error|fatal|panic') { Write-Host ">> $line" -ForegroundColor Red }
-                elseif ($line -match 'warn') { Write-Host ">> $line" -ForegroundColor Yellow }
-                else { Write-Host ">> $line" -ForegroundColor White }
-
-                # [修改2] 显示后置上下文 (PostContext)，用深灰色显示
-                if ($matchItem.Context.PostContext) {
-                    foreach ($post in $matchItem.Context.PostContext) { 
-                        Write-Host "   $($post.Trim())" -ForegroundColor DarkGray 
-                    }
-                }
+            foreach ($m in $matches) {
+                $currentLineNum = $m.LineNumber
                 
-                # 添加分隔线，区分不同时间段的日志
-                Write-Host "   ----------------" -ForegroundColor DarkGray
+                # --- A. 计算前置上下文 ---
+                if ($m.Context.PreContext) {
+                    $pNum = $currentLineNum - 1
+                    if (-not $lineMap.ContainsKey($pNum)) {
+                        $lineMap[$pNum] = @{ Text = $m.Context.PreContext[0]; IsMatch = $false }
+                    }
+                }
+
+                # --- B. 记录匹配行 ---
+                $lineMap[$currentLineNum] = @{ Text = $m.Line; IsMatch = $true }
+
+                # --- C. 计算后置上下文 ---
+                if ($m.Context.PostContext) {
+                    $nNum = $currentLineNum + 1
+                    if (-not $lineMap.ContainsKey($nNum)) {
+                        $lineMap[$nNum] = @{ Text = $m.Context.PostContext[0]; IsMatch = $false }
+                    }
+                }
             }
+
+            # 排序
+            $sortedLineNums = $lineMap.Keys | Sort-Object
+            $lastLineNum = -1
+
+            foreach ($num in $sortedLineNums) {
+                $info = $lineMap[$num]
+                $lineText = $info.Text.Trim()
+                # [新增] 移除 "+0800 "
+                $lineText = $lineText -replace "\+0800\s*", ""
+                # [关键] 保持与 View-Log 一致的行号格式：[ 12345]
+                $linePrefix = "[{0,5}]" -f $num
+
+                # 断层检测
+                if ($lastLineNum -ne -1 -and $num -ne ($lastLineNum + 1)) {
+                    Write-Host "  ------- ( ... ) -------" -ForegroundColor DarkGray
+                }
+
+                # 颜色渲染
+                if ($info.IsMatch) {
+                    # 匹配行高亮
+                    Write-Host "$linePrefix " -NoNewline -ForegroundColor Cyan
+                    if ($lineText -match 'error|fatal|panic') { 
+                        Write-Host ">> $lineText" -ForegroundColor Red 
+                    } elseif ($lineText -match 'warn') { 
+                        Write-Host ">> $lineText" -ForegroundColor Yellow 
+                    } else { 
+                        Write-Host ">> $lineText" -ForegroundColor White 
+                    }
+                } else {
+                    # 上下文变暗
+                    Write-Host "$linePrefix    $lineText" -ForegroundColor DarkGray
+                }
+
+                $lastLineNum = $num
+            }
+
         } else {
-            Write-Host "  未找到匹配项。" -ForegroundColor DarkGray
+            Write-Host "  未找到匹配项。" -ForegroundColor Red
         }
-    } catch { Write-Host "搜索出错: $_" -ForegroundColor Red }
+    } catch { 
+        Write-Host "搜索出错: $_" -ForegroundColor Red 
+    }
     
     Write-Host "`n  按任意键返回日志流 (Esc 退出)..." -ForegroundColor DarkGray
     Wait-Key | Out-Null
@@ -463,7 +504,7 @@ function View-Log {
     function Draw-LogHeader {
         Reset-Console
         Write-Host "========================================================" -ForegroundColor Cyan
-        Write-Host "  📄 service.auto.log (完整日志流)" -ForegroundColor Yellow
+        Write-Host "  📄 service.auto.log (---实时日志流---)" -ForegroundColor Yellow
         $statusFilter = if ($filterWarn) { "开启" } else { "关闭" }
         Write-Host "  [F]过滤Warn($statusFilter) [C]清空 [R]重载 [S]搜索 [Esc]退出" -ForegroundColor Green
         Write-Host "========================================================" -ForegroundColor Cyan
@@ -477,110 +518,149 @@ function View-Log {
         return
     }
 
+    # [新增] 初始化行号计数器
+    Write-Host "  正在同步行号索引，请稍候..." -ForegroundColor DarkGray
+    $currentLineNum = 0
+    try {
+        # 快速计算当前文件行数，作为起步基数
+        $currentLineNum = (Get-Content $LogFile -ErrorAction SilentlyContinue | Measure-Object -Line).Lines
+    } catch {}
+    
+    # 擦除"正在同步..."提示
+    Draw-LogHeader
+
     $reader = $null
     $stream = $null
-    # [新增] 记录上次文件大小
     $lastSize = (Get-Item $LogFile).Length
 
     try {
         $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
         $reader = New-Object System.IO.StreamReader($stream)
+        
+        # 移动到文件末尾（只看最新）
         $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
         
         while ($true) {
             $line = $reader.ReadLine()
             if ($line) {
-                # ... (原有的日志颜色渲染逻辑) ...
+                # [新增] 移除 "+0800 " 及其后的空格，让日志更清爽
+                $line = $line -replace "\+0800\s*", ""
+                # [新增] 读到新行，行号 +1
+                $currentLineNum++
+                
+                # [新增] 格式化行号前缀
+                $linePrefix = "[{0,5}]" -f $currentLineNum
+
                 $isImportant = ($line -match "WARN|ERROR|FATAL|PANIC")
-                if ($filterWarn -and -not $isImportant) { } else {
-                    if ($line -match "ERROR|FATAL|panic") { Write-Host $line -ForegroundColor Red }
-                    elseif ($line -match "WARN") { Write-Host $line -ForegroundColor Yellow }
-                    elseif ($line -match "INFO") { Write-Host $line -ForegroundColor Cyan }
-                    else { Write-Host $line }
+                
+                if ($filterWarn -and -not $isImportant) { 
+                    # 被过滤时不显示，但行号依然要增加，保证计数准确
+                } else {
+                    # 输出带行号的日志
+                    if ($line -match "ERROR|FATAL|panic") { 
+                        Write-Host "$linePrefix " -NoNewline -ForegroundColor Cyan
+                        Write-Host $line -ForegroundColor Red 
+                    }
+                    elseif ($line -match "WARN") { 
+                        Write-Host "$linePrefix " -NoNewline -ForegroundColor Cyan
+                        Write-Host $line -ForegroundColor Yellow 
+                    }
+                    elseif ($line -match "INFO") { 
+                        Write-Host "$linePrefix " -NoNewline -ForegroundColor Cyan
+                        Write-Host $line -ForegroundColor White 
+                    }
+                    else { 
+                        Write-Host "$linePrefix $line" -ForegroundColor DarkGray
+                    }
                 }
             } else {
-                # 没读到新行，休息一下
+                # 没读到新行，暂停
                 Start-Sleep -Milliseconds 100
                 
-                # ========== [新增] 轮转/截断检测逻辑 ==========
+                # ========== 轮转/截断检测逻辑 ==========
                 try {
-                    # 获取当前文件实际大小
                     $currentSize = (Get-Item $LogFile).Length
                     
-                    # 如果当前大小比之前记录的小很多（说明被截断或轮转了）
                     if ($currentSize -lt $lastSize) {
-                        Write-Host "`n  >>> ⚠ 检测到日志轮转或重置 (Size: $lastSize -> $currentSize) <<<" -ForegroundColor Magenta
-                        Write-Host "  >>> 🔄 正在自动重载新日志流..." -ForegroundColor Magenta
+                        Write-Host "`n  >>> ⚠ 检测到日志轮转 (Size Reset) <<<" -ForegroundColor Magenta
+                        Write-Host "  >>> 🔄 重置行号计数器..." -ForegroundColor Magenta
                         
-                        # 关闭旧流
                         $reader.Close(); $stream.Close()
                         Start-Sleep -Milliseconds 200
                         
-                        # 重新打开新流
                         $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
                         $reader = New-Object System.IO.StreamReader($stream)
-                        # 这里选择是否跳到末尾，或者从头开始。轮转后的新日志通常是空的或只有开头，从头读比较好
-                        # $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
                         
+                        # [新增] 轮转后，文件是新的，行号归零
+                        $currentLineNum = 0 
                         $lastSize = $currentSize
-                        Write-Host "  >>> ✅ 重载完成，继续监控 <<<`n" -ForegroundColor DarkGray
+                        Write-Host "  >>> ✅ 重载完成，从第 1 行开始监控 <<<`n" -ForegroundColor DarkGray
                     } else {
                         $lastSize = $currentSize
                     }
-                } catch {
-                    # 文件可能被锁住瞬间无法访问，忽略
-                }
-                # ============================================
+                } catch {}
             }
 
-            # ... (底部的原有按键监听代码 [F], [S], [R], [C] 等保持不变) ...
+            # ========== 按键监听逻辑 (保持原样，部分微调) ==========
             if ([Console]::KeyAvailable) {
                 $k = [Console]::ReadKey($true)
                 if ($k.Key -eq "Escape") { break }
-                # ... 其他按键逻辑请保留原样 ...
-                # (为节省篇幅，这里省略了按键处理代码，请直接复制原脚本中的这部分)
+                
                 if ($k.Key -eq "F") { $filterWarn = -not $filterWarn; Draw-LogHeader }
+                
                 if ($k.Key -eq "S") {
-                     # ... 原有搜索逻辑 ...
-                     # 注意：搜索完回来记得重置 $stream, $reader 和 $lastSize
                      if ($reader) { $reader.Close() }
                      if ($stream) { $stream.Close() }
                      $kw = Read-Host "`n  请输入搜索关键词 (回车取消)"
                      if ($kw) { Search-Log-Internal -Keyword $kw }
                      Draw-LogHeader
+                     # 搜索回来后，重新定位到末尾，行号理论上应该重新计算，但为了性能暂时保持累加
+                     # 如果对准确性要求极高，可以在这里重新 Measure-Object
                      try {
                         $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
                         $reader = New-Object System.IO.StreamReader($stream)
                         $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
-                        $lastSize = (Get-Item $LogFile).Length # 更新大小
+                        
+                        # [修正] 搜索回来可能漏掉了期间产生的日志，这里做一个校准
+                        $currentLineNum = (Get-Content $LogFile | Measure-Object -Line).Lines
                      } catch { break }
                 }
-                if ($k.Key -eq "R") { 
-                    # ... 原有重载逻辑 ...
+                
+                if ($k.Key -eq "C") {
+                    # 清空文件逻辑
                     if ($reader) { $reader.Close() }
                     if ($stream) { $stream.Close() }
-                    Start-Sleep -Milliseconds 200
+                    try { 
+                        Clear-Content $LogFile -ErrorAction Stop
+                        Draw-LogHeader
+                        Write-Host "  ✅ 已清空日志文件" -ForegroundColor Green
+                        # [新增] 清空后行号归零
+                        $currentLineNum = 0 
+                    } 
+                    catch { Draw-LogHeader; Write-Host "  ⚠ 无法清空(文件被占用)" -ForegroundColor Yellow }
+                    try {
+                        $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
+                        $reader = New-Object System.IO.StreamReader($stream)
+                        $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
+                        $lastSize = (Get-Item $LogFile).Length 
+                    } catch {}
+                }
+                
+                if ($k.Key -eq "R") { 
+                    # 重载逻辑
+                    if ($reader) { $reader.Close() }
+                    if ($stream) { $stream.Close() }
                     Draw-LogHeader
                     try {
+                        # [新增] 手动重载时，重新校准行号
+                        $currentLineNum = (Get-Content $LogFile | Measure-Object -Line).Lines
+                        
                         $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
                         $reader = New-Object System.IO.StreamReader($stream)
                         $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
-                        Write-Host "  ✅ 日志流已重载" -ForegroundColor Green
-                        $lastSize = (Get-Item $LogFile).Length # 更新大小
+                        Write-Host "  ✅ 日志流已重载 (行号已校准)" -ForegroundColor Green
+                        $lastSize = (Get-Item $LogFile).Length
                     } catch { break }
-                }
-                if ($k.Key -eq "C") {
-                    # ... 原有清空逻辑 ...
-                    if ($reader) { $reader.Close() }
-                    if ($stream) { $stream.Close() }
-                    try { Clear-Content $LogFile -ErrorAction Stop; Draw-LogHeader; Write-Host "  ✅ 已清空" -ForegroundColor Green } 
-                    catch { Draw-LogHeader; Write-Host "  ⚠ 只能清空显示(文件被占用)" -ForegroundColor Yellow }
-                    try {
-                        $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
-                        $reader = New-Object System.IO.StreamReader($stream)
-                        $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::End) | Out-Null
-                        $lastSize = (Get-Item $LogFile).Length # 更新大小
-                    } catch {}
                 }
             }
         }
@@ -1146,4 +1226,3 @@ while ($true) {
         }
     }
 }
-
