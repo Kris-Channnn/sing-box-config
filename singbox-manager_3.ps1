@@ -156,7 +156,8 @@ function Get-ServiceState {
 }
 
 function Start-Service-Wrapper {
-    Ensure-WinSW; Archive-Old-Logs
+    Ensure-WinSW
+    Archive-Old-Logs -Threshold 0 | Out-Null # 启动时无条件清理一次，且绝对静默
     if ((Get-ServiceState) -eq "Running") { Write-Line "已在运行" "Yellow"; return }
     Write-Line "🚀 启动中..." "Cyan"
     Start-Process -FilePath $ServiceExe -ArgumentList "start" -Wait -NoNewWindow
@@ -238,17 +239,28 @@ function Backup-Config-Wrapper {
 }
 
 function Archive-Old-Logs {
-    if (-not (Test-Path $LogArchiveDir)) { New-Item -Type Directory -Path $LogArchiveDir | Out-Null }
-    $logs = Get-ChildItem $ScriptDir -Filter "$ServiceBase.*.err.log" | ? { $_.Name -match "$ServiceBase\.\d+\.err\.log$" }
+    param($Threshold = 0) # 默认0为无条件归档，设为3则达到3个才归档
+    
+    if (-not (Test-Path $LogArchiveDir)) { New-Item -Type Directory -Path $LogArchiveDir -ErrorAction SilentlyContinue | Out-Null }
+    $logs = Get-ChildItem $ScriptDir -Filter "$ServiceBase.*.err.log" -ErrorAction SilentlyContinue | ? { $_.Name -match "$ServiceBase\.\d+\.err\.log$" }
+    
+    if ($Threshold -gt 0 -and $logs.Count -lt $Threshold) { return $false }
+    if ($logs.Count -eq 0) { return $false }
+    
+    $oldProg = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    
     foreach ($l in $logs) {
         try {
             $f = "$LogArchiveDir\$(Get-Date -f 'yyyy-MM')"
-            if (-not (Test-Path $f)) { New-Item -Type Directory -Path $f | Out-Null }
+            if (-not (Test-Path $f)) { New-Item -Type Directory -Path $f -ErrorAction SilentlyContinue | Out-Null }
             Compress-Archive -Path $l.FullName -DestinationPath "$f\$($l.Name)_$(Get-Date -f 'HHmmss').zip" -Force -ErrorAction Stop
             Remove-Item $l.FullName -Force
-        }
-        catch {}
+        } catch {}
     }
+
+    $ProgressPreference = $oldProg
+    return $true
 }
 
 function Search-Log-Internal {
@@ -292,7 +304,7 @@ function View-Log {
     function Header {
         Reset-Console
         # 顶部标题
-        Write-Host " 实时日志流 (Live Log) " -NoNewline -BackgroundColor Yellow -ForegroundColor Black
+        Write-Host " --- 实时日志流 --- (Live Log) " -NoNewline -BackgroundColor Yellow -ForegroundColor Black
         Write-Host " $LogFile " -BackgroundColor Black -ForegroundColor DarkGray
         
         $st = if($filterWarn){"开启"}else{"关闭"}
@@ -335,7 +347,8 @@ function View-Log {
                     if ($nowSz -lt $lastSz) { 
                         Write-Line ">>> 日志轮转重置 <<<" "Magenta"
                         $reader.Close(); $stream.Close(); Start-Sleep -m 200
-                        $stream = [System.IO.File]::Open($LogFile, 'Open', 'Read', 'ReadWrite')
+                        Archive-Old-Logs -Threshold 3 | Out-Null
+                        $stream =::Open($LogFile, 'Open', 'Read', 'ReadWrite')
                         $reader = New-Object System.IO.StreamReader($stream)
                         $curLn = 0; $lastSz = $nowSz
                     } else { $lastSz = $nowSz }
@@ -411,7 +424,14 @@ function Show-Monitor {
 
         if(((Get-Date)-$lastRot).TotalSeconds -gt 2){
             $r = Get-ChildItem $ScriptDir -Filter "$ServiceBase.*.err.log" | ? {$_.Name -match "$ServiceBase\.\d+\.err\.log$"}
-            if($r){$msg="⚠ 日志已轮转, 发现 $($r.Count) 个旧文件"}else{$msg=""}
+            if($r){
+                if($r.Count -ge 3){
+                    Archive-Old-Logs -Threshold 3 | Out-Null
+                    $msg="📦 已将旧日志自动打包至 archives"
+                } else {
+                    $msg="⚠ 日志已轮转, 待归档进度: $($r.Count)/3"
+                }
+            } else {$msg=""}
             $lastRot=Get-Date
         }
         if($msg){Write-Host "  $msg$(' '*20)" -ForegroundColor Yellow}else{Write-Host "  $(' '*50)"}
@@ -538,6 +558,7 @@ function Check-Config { Draw-Sub-Header "配置校验"; if (Check-Config-Silent)
 # ==================== 6. 主菜单 ====================
 
 function Show-Menu {
+    Archive-Old-Logs -Threshold 3 | Out-Null 
     Reset-Console; Draw-Gradient-Art; Write-TrueColor "  ════════════════════════════════════════════════════════════════" 80 0 80 -NewLine
     
     $st = Get-ServiceState; $pr = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" ProxyEnable -EA 0).ProxyEnable
@@ -592,5 +613,4 @@ while ($true) {
         "q" { if (Test-Path $ConfigNameFile) { Del $ConfigNameFile -Force }; exit }
         "Escape" { if (Test-Path $ConfigNameFile) { Del $ConfigNameFile -Force }; exit }
     }
-
 }
