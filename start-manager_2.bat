@@ -7,7 +7,7 @@ color 0A
 :: ===================================================
 :: 1. 核心配置区 (路径设置)
 :: ===================================================
-set "TARGET_DIR=D:\APPLY\sing-box_reF1nd"
+set "TARGET_DIR=sing-box.exe所在位置"
 set "SCRIPT_NAME=singbox-manager.ps1"
 
 :: ===================================================
@@ -62,3 +62,4 @@ if %errorlevel% equ 0 (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
     pause
 )
+
