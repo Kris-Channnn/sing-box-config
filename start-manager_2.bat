@@ -1,12 +1,22 @@
 @echo off
 setlocal EnableDelayedExpansion
+chcp 65001 >nul
+title Sing-box Manager Launcher
+color 0A
 
 :: ===================================================
-:: 1. 自动提权模块
+:: 1. 核心配置区 (路径设置)
+:: ===================================================
+set "TARGET_DIR=D:\APPLY\sing-box_reF1nd"
+set "SCRIPT_NAME=singbox-manager.ps1"
+
+:: ===================================================
+:: 2. 自动提权模块 (VBS Method)
 :: ===================================================
 >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 
 if '%errorlevel%' NEQ '0' (
+    echo [INFO] 正在请求管理员权限...
     goto UACPrompt
 ) else ( goto gotAdmin )
 
@@ -18,38 +28,37 @@ if '%errorlevel%' NEQ '0' (
 
 :gotAdmin
     if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
-    :: 切换到脚本所在目录
-    cd /d "sing-box.exe和config.json所在目录"
+    
+    :: 切换到指定目录
+    if exist "%TARGET_DIR%" (
+        cd /d "%TARGET_DIR%"
+    ) else (
+        echo [ERROR] 找不到目录: %TARGET_DIR%
+        pause
+        exit
+    )
 
 :: ===================================================
-:: 2. 启动逻辑 (大窗口修复版)
+:: 3. 启动逻辑 (带标题参数)
 :: ===================================================
 
-:: 检查脚本是否存在
-if not exist "singbox-manager.ps1" (
-    echo [ERROR] 未找到 singbox-manager.ps1
-    echo 请确保 .bat 和 .ps1 文件在同一个文件夹内。
+if not exist "%SCRIPT_NAME%" (
+    echo [ERROR] 未找到 %SCRIPT_NAME%
     pause
     exit
 )
 
+echo [INFO] 正在启动 Sing-box Manager...
+
 :: 检测 Windows Terminal
 where wt.exe >nul 2>nul
 if %errorlevel% equ 0 (
-    :: ---------------------------------------------------
-    :: 修复说明：
-    :: --size 140,45 必须紧跟在 wt.exe 后面，作为全局参数
-    :: ---------------------------------------------------
-    
-    start "" "wt.exe" --size 110,40 -w 0 nt -d . --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
-    
+    start "" "wt.exe" --size 125,50 -w 0 nt -p "Windows PowerShell" -d "%TARGET_DIR%" --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
     exit
 ) else (
-    echo [INFO] 未检测到 Windows Terminal，使用默认控制台。
-    
-    :: 降级方案：强制拉大 CMD 窗口
-    mode con: cols=110 lines=40
-    powershell -NoProfile -ExecutionPolicy Bypass -File "singbox-manager.ps1"
+    echo [INFO] 未检测到 Windows Terminal，使用经典控制台。
+    title Sing-box Manager
+    mode con: cols=125 lines=50
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
     pause
-
 )
