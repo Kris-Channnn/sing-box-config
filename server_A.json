@@ -100,7 +100,7 @@
       {"clash_mode": "Direct", "outbound": "direct"},
       {"rule_set": "private", "outbound": "direct"},
       {"network": "icmp", "outbound": "direct"},
-      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"},
+      {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"}, // ssh客户端直连，安卓可删除
       {"rule_set": ["AWAvenue-Ads", "webRTC", "adobe"], "action": "reject", "method": "drop"}, // adobe是为了屏蔽Adobe旗下软件的正版联网验证，可选择性删除
       {"domain": ["abyss.cyapi.cn", "ad.cyapi.cn", "gather.colorfulclouds.net"], "action": "reject"},
       {"domain_suffix": ["steamserver.net"], "outbound": "direct"},
@@ -142,6 +142,7 @@
     ]
   }
 }
+
 
 
 
