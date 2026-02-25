@@ -103,6 +103,8 @@
       {"process_name": ["ssh.exe", "powershell.exe", "pwsh.exe", "putty.exe", "Termius.exe", "XTerminal.exe", "Tabby.exe"], "outbound": "direct"}, // ssh客户端直连，安卓可删除
       {"rule_set": ["AWAvenue-Ads", "webRTC", "adobe"], "action": "reject", "method": "drop"}, // adobe是为了屏蔽Adobe旗下软件的正版联网验证，可选择性删除
       {"domain": ["abyss.cyapi.cn", "ad.cyapi.cn", "gather.colorfulclouds.net"], "action": "reject"},
+      {"type": "logical", "mode": "and", "rules": [{"domain_suffix": [".jd.com", ".360buyimg.com", ".jdcloud.com", ".jcloudcs.com"]}, {"port": [80, 443], "invert": true}], "action": "reject"},
+      // 解决京东使用代理的情况下，图片加载缓慢或加载不出的的问题，将.360buyimg.com的高位端口请求直接reject
       {"domain_suffix": ["steamserver.net"], "outbound": "direct"},
       {"domain_suffix":  ["pilipiliultra.com"], "outbound": "📺 Bilibili"},
       {"outbound": "tg-sg", "ip_cidr": ["91.108.16.0/21", "91.108.56.0/23", "149.154.168.0/22", "2001:b28:f23c::/48", "2001:b28:f23f::/48"]},
@@ -142,6 +144,7 @@
     ]
   }
 }
+
 
 
 
