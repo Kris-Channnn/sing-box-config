@@ -17,7 +17,7 @@ singbox-manager_3.ps1是美化UI版本，修改完善了日志流
 
 start-manager.bat为启动脚本程序（cmd命令提示符），可放在任意位置，可编辑cd /d ""
 
-start-manager_2.bat为启动Windows“终端”powershell版本，美化一点
+start-manager_2.bat为启动Windows“终端”powershell版本，美化一点，用来调用WinSW版脚本
 
 ---------------------------------------------------------------------------------------------
 
