@@ -12,17 +12,6 @@ param(
 )
 
 # ==================== 0. 环境初始化 ====================
-try {
-    $psWindow = (Get-Host).UI.RawUI
-    $newSize = $psWindow.WindowSize
-    $newSize.Width = 130; $newSize.Height = 40
-    $psWindow.WindowSize = $newSize
-    $bufferSize = $psWindow.BufferSize
-    $bufferSize.Width = 130; $bufferSize.Height = 2000
-    $psWindow.BufferSize = $bufferSize
-}
-catch {}
-
 $ErrorActionPreference = "SilentlyContinue"
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
 Set-Location $ScriptDir
@@ -614,3 +603,4 @@ while ($true) {
         "Escape" { if (Test-Path $ConfigNameFile) { Del $ConfigNameFile -Force }; exit }
     }
 }
+
