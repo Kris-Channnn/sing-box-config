@@ -53,13 +53,13 @@ echo [INFO] 正在启动 Sing-box Manager...
 :: 检测 Windows Terminal
 where wt.exe >nul 2>nul
 if %errorlevel% equ 0 (
-    start "" "wt.exe" --size 125,50 -w 0 nt -p "Windows PowerShell" -d "%TARGET_DIR%" --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
+    start "" "wt.exe" -w 0 nt -p "Windows PowerShell" -d "%TARGET_DIR%" --title "Sing-box Manager" powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
     exit
 ) else (
     echo [INFO] 未检测到 Windows Terminal，使用经典控制台。
     title Sing-box Manager
-    mode con: cols=125 lines=50
     powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_NAME%"
-    pause
+    exit
 )
+
 
